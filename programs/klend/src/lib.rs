@@ -13,11 +13,7 @@ use utils::constraints::emergency_mode_disabled;
 use crate::handlers::*;
 pub use crate::{state::*, utils::fraction};
 
-#[cfg(feature = "staging")]
-declare_id!("SLendK7ySfcEzyaFqy93gDnD3RtrpXJcnRwb6zFHJSh");
-
-#[cfg(not(feature = "staging"))]
-declare_id!("KLend2g3cP87fffoy8q1mQqGKjrxjC8boSyAYavgmjD");
+declare_id!("HUHJsverovPJN3sVtv8J8D48fKzeajRtz3Ga4Zmh4RLA");
 
 #[cfg(not(feature = "no-entrypoint"))]
 solana_security_txt::security_txt! {

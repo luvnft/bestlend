@@ -3,6 +3,8 @@ seeds = false
 skip-lint = false
 [programs.localnet]
 bestlend = "9iUmehkCkXHmatHiRjKpXTsPDxNCLMfmtSzhJKm5h94z"
+mock-pyth = "6Lh68KvhjwFGUENYh97S5BdLubB91bEcgKc2BuU2M13q"
+kamino_lending = "HUHJsverovPJN3sVtv8J8D48fKzeajRtz3Ga4Zmh4RLA"
 
 [registry]
 url = "https://api.apr.dev"
