@@ -89,6 +89,7 @@ pub struct FlashRepayReserveLiquidity<'info> {
         seeds = [seeds::LENDING_MARKET_AUTH, lending_market.key().as_ref()],
         bump = lending_market.load()?.bump_seed as u8,
     )]
+    /// CHECK: just authority
     pub lending_market_authority: AccountInfo<'info>,
 
     pub lending_market: AccountLoader<'info, LendingMarket>,
@@ -118,6 +119,7 @@ pub struct FlashRepayReserveLiquidity<'info> {
     pub referrer_account: Option<AccountInfo<'info>>,
 
     #[account(address = sysvar::instructions::ID)]
+    /// CHECK: address checked
     pub sysvar_info: AccountInfo<'info>,
     pub token_program: Program<'info, Token>,
 }

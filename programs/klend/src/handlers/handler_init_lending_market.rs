@@ -29,6 +29,7 @@ pub struct InitLendingMarket<'info> {
         seeds = [seeds::LENDING_MARKET_AUTH, lending_market.key().as_ref()],
         bump
     )]
+    /// CHECK: just authority
     pub lending_market_authority: AccountInfo<'info>,
 
     pub system_program: Program<'info, System>,

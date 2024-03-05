@@ -50,5 +50,6 @@ pub struct SocializeLoss<'info> {
     pub reserve: AccountLoader<'info, Reserve>,
 
     #[account(address = SysInstructions::id())]
+    /// CHECK:address checked
     pub instruction_sysvar_account: AccountInfo<'info>,
 }

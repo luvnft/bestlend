@@ -119,6 +119,7 @@ pub struct BorrowObligationLiquidity<'info> {
         seeds = [seeds::LENDING_MARKET_AUTH, lending_market.key().as_ref()],
         bump = lending_market.load()?.bump_seed as u8,
     )]
+    /// CHECK: just authority
     pub lending_market_authority: AccountInfo<'info>,
 
     #[account(mut,
@@ -147,5 +148,6 @@ pub struct BorrowObligationLiquidity<'info> {
     pub token_program: Program<'info, Token>,
 
     #[account(address = SysInstructions::id())]
+    /// CHECK:address checked
     pub instruction_sysvar_account: AccountInfo<'info>,
 }

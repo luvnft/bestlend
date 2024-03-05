@@ -92,5 +92,6 @@ pub struct DepositObligationCollateral<'info> {
     pub token_program: Program<'info, Token>,
 
     #[account(address = SysInstructions::id())]
+    /// CHECK:address checked
     pub instruction_sysvar_account: AccountInfo<'info>,
 }

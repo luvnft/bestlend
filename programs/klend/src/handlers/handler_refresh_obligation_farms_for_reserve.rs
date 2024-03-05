@@ -74,6 +74,7 @@ pub struct RefreshObligationFarmsForReserve<'info> {
     #[account(
         constraint = obligation_farm_user_state.load()?.delegatee == obligation.key() @ LendingError::InvalidAccountInput
     )]
+    /// CHECK: farm stuff
     pub obligation: AccountInfo<'info>,
 
     #[account(
@@ -81,12 +82,14 @@ pub struct RefreshObligationFarmsForReserve<'info> {
         seeds = [seeds::LENDING_MARKET_AUTH, lending_market.key().as_ref()],
         bump = lending_market.load()?.bump_seed as u8,
     )]
+    /// CHECK: just authority
     pub lending_market_authority: AccountInfo<'info>,
 
     #[account(has_one = lending_market)]
     pub reserve: AccountLoader<'info, Reserve>,
 
     #[account(mut)]
+    /// CHECK: farm stuff
     pub reserve_farm_state: AccountInfo<'info>,
 
     #[account(mut,

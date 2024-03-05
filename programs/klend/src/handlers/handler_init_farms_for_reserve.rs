@@ -39,6 +39,7 @@ pub struct InitFarmsForReserve<'info> {
         seeds = [seeds::LENDING_MARKET_AUTH, lending_market.key().as_ref()],
         bump = lending_market.load()?.bump_seed as u8,
     )]
+    /// CHECK: just authority
     pub lending_market_authority: AccountInfo<'info>,
 
     #[account(mut,
@@ -47,11 +48,14 @@ pub struct InitFarmsForReserve<'info> {
     pub reserve: AccountLoader<'info, Reserve>,
 
     pub farms_program: Program<'info, Farms>,
+    /// CHECK: farm stuff
     pub farms_global_config: AccountInfo<'info>,
 
     #[account(mut)]
+    /// CHECK: farm stuff
     pub farm_state: AccountInfo<'info>,
 
+    /// CHECK: farm stuff
     pub farms_vault_authority: AccountInfo<'info>,
 
     pub rent: Sysvar<'info, Rent>,
