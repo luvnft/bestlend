@@ -15,7 +15,7 @@ const ASSETS = [
   "USDC", "USDT", "SOL", "JitoSOL", "mSOL", "bSOL"
 ]
 const PRICES = [
-  9999, 9877, 1012000, 1052000, 1112000, 1032000
+  9998, 9977, 1267000, 1372000, 1471000, 1403000
 ]
 
 describe("bestlend", () => {
