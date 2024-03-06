@@ -4,11 +4,12 @@ import { Bestlend } from "../target/types/bestlend";
 import { KaminoLending } from "../target/types/kamino_lending";
 import { MockPyth } from "../target/types/mock_pyth";
 import { PublicKey, Transaction, SystemProgram, sendAndConfirmTransaction, Keypair, Connection } from "@solana/web3.js";
-import { getOrCreateAssociatedTokenAccount, createSyncNativeInstruction, createMint, mintTo, getAssociatedTokenAddressSync } from "@solana/spl-token";
+import { getOrCreateAssociatedTokenAccount, createMint, mintTo } from "@solana/spl-token";
 import { BN } from "bn.js";
 import { bs58 } from "@coral-xyz/anchor/dist/cjs/utils/bytes";
 import { keys } from '../keys'
 import { lendingMarket, lendingMarketAuthority, reservePDAs } from "./accounts";
+import { getReserveConfig } from "./configs";
 
 const ASSETS = [
   "USDC", "USDT", "SOL", "JitoSOL", "mSOL", "bSOL"
@@ -132,6 +133,24 @@ describe("bestlend", () => {
               reserveCollateralSupply,
             })
             .rpc({ skipPreflight: true });
+        });
+      }
+    });
+
+    describe("updateReserveConfig", async () => {
+      for (let i = 0; i < numReserves; i++) {
+        it(`mint ${i + 1}`, async () => {
+          const reserve = reserves[i];
+          const configBytes = getReserveConfig(oracles[i].publicKey, ASSETS[i])
+
+          await klend.methods
+            .updateEntireReserveConfig(new BN(25), configBytes)
+            .accounts({
+              lendingMarketOwner: signer.publicKey,
+              lendingMarket: lendingMarket.publicKey,
+              reserve: reserve.publicKey,
+            })
+            .rpc();
         });
       }
     });
