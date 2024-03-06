@@ -15,17 +15,6 @@ pub use crate::{state::*, utils::fraction};
 
 declare_id!("HUHJsverovPJN3sVtv8J8D48fKzeajRtz3Ga4Zmh4RLA");
 
-#[cfg(not(feature = "no-entrypoint"))]
-solana_security_txt::security_txt! {
-    name: "Kamino Lending",
-    project_url: "https://kamino.finance/",
-    contacts: "email:security@kamino.finance",
-    policy: "https://github.com/hubbleprotocol/audits/blob/master/docs/SECURITY.md",
-
-       preferred_languages: "en",
-    auditors: "OtterSec, Offside Labs"
-}
-
 #[program]
 pub mod kamino_lending {
 

@@ -6,9 +6,10 @@ import { MockPyth } from "../target/types/mock_pyth";
 import { PublicKey, Transaction, SystemProgram, sendAndConfirmTransaction, Keypair } from "@solana/web3.js";
 import { BN } from "bn.js";
 import { keys } from '../keys'
-import { lendingMarket, lendingMarketAuthority, reservePDAs } from "./accounts";
+import { lendingMarket, lendingMarketAuthority, reservePDAs, userPDAs } from "./accounts";
 import { getReserveConfig } from "./configs";
 import { airdrop, keyPairFromB58, mintToken } from "./utils";
+import { PROGRAM_ID as KLEND_PROGRAM_ID } from "../clients/klend/src";
 
 const ASSETS = [
   "USDC", "USDT", "SOL", "JitoSOL", "mSOL", "bSOL"
@@ -154,4 +155,38 @@ describe("bestlend", () => {
       }
     });
   })
+
+  describe("bestlend", async () => {
+    it("init account", async () => {
+      const user = users[0]
+
+      const {
+        bestlendUserAccount,
+        userMetadata,
+        obligation
+      } = userPDAs(user.publicKey)
+
+      await program.methods.initAccount(0, 1)
+        .accounts({
+          owner: user.publicKey,
+          bestlendUserAccount,
+        })
+        .signers([user])
+        .rpc();
+
+      await program.methods.initKlendAccount()
+        .accounts({
+          owner: user.publicKey,
+          bestlendUserAccount,
+          obligation,
+          lendingMarket: lendingMarket.publicKey,
+          seed1Account: PublicKey.default,
+          seed2Account: PublicKey.default,
+          userMetadata: userMetadata,
+          klendProgram: KLEND_PROGRAM_ID
+        })
+        .signers([user])
+        .rpc();
+    });
+  });
 });
