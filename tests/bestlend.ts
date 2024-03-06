@@ -3,13 +3,12 @@ import { Program } from "@coral-xyz/anchor";
 import { Bestlend } from "../target/types/bestlend";
 import { KaminoLending } from "../target/types/kamino_lending";
 import { MockPyth } from "../target/types/mock_pyth";
-import { PublicKey, Transaction, SystemProgram, sendAndConfirmTransaction, Keypair, Connection } from "@solana/web3.js";
-import { getOrCreateAssociatedTokenAccount, createMint, mintTo } from "@solana/spl-token";
+import { PublicKey, Transaction, SystemProgram, sendAndConfirmTransaction, Keypair } from "@solana/web3.js";
 import { BN } from "bn.js";
-import { bs58 } from "@coral-xyz/anchor/dist/cjs/utils/bytes";
 import { keys } from '../keys'
 import { lendingMarket, lendingMarketAuthority, reservePDAs } from "./accounts";
 import { getReserveConfig } from "./configs";
+import { airdrop, keyPairFromB58, mintToken } from "./utils";
 
 const ASSETS = [
   "USDC", "USDT", "SOL", "JitoSOL", "mSOL", "bSOL"
@@ -40,7 +39,7 @@ describe("bestlend", () => {
       oracles.push(keyPairFromB58(keys.oracles[ASSETS[i]]));
       users.push(Keypair.generate());
 
-      await addSol(provider, users[i].publicKey);
+      await airdrop(provider, users[i].publicKey);
       mints.push(await mintToken(connection, users[i], ASSETS[i], keyPairFromB58(keys.mints[ASSETS[i]])));
     }
   });
@@ -90,7 +89,7 @@ describe("bestlend", () => {
 
     describe("initReserve", async () => {
       for (let i = 0; i < numReserves; i++) {
-        it(`mint ${i + 1}`, async () => {
+        it(ASSETS[i], async () => {
           const mint = mints[i];
           const reserve = reserves[i];
 
@@ -139,7 +138,7 @@ describe("bestlend", () => {
 
     describe("updateReserveConfig", async () => {
       for (let i = 0; i < numReserves; i++) {
-        it(`mint ${i + 1}`, async () => {
+        it(ASSETS[i], async () => {
           const reserve = reserves[i];
           const configBytes = getReserveConfig(oracles[i].publicKey, ASSETS[i])
 
@@ -156,33 +155,3 @@ describe("bestlend", () => {
     });
   })
 });
-
-export const keyPairFromB58 = (s: string): Keypair => {
-  return Keypair.fromSecretKey(bs58.decode(s))
-}
-
-const addSol = async (
-  provider: anchor.Provider,
-  wallet: anchor.web3.PublicKey,
-  amount = 10 * anchor.web3.LAMPORTS_PER_SOL
-) => {
-  await provider.connection.confirmTransaction(
-    await provider.connection.requestAirdrop(wallet, amount),
-    "confirmed"
-  );
-};
-
-const mintToken = async (connection: Connection, owner: Keypair, ticker: string, keypair: Keypair) => {
-  const dec = ticker.includes("USD") ? 6 : 9
-  const mint = await createMint(connection, owner, owner.publicKey, null, dec, keypair);
-
-  const ata = await getOrCreateAssociatedTokenAccount(
-    connection,
-    owner,
-    mint,
-    owner.publicKey
-  );
-
-  await mintTo(connection, owner, mint, ata.address, owner.publicKey, 1e10);
-  return mint;
-};

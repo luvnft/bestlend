@@ -1,6 +1,5 @@
 import BN from "bn.js";
 import { PublicKey } from "@solana/web3.js";
-import * as beet from '@metaplex-foundation/beet'
 import { reserveConfigBeet } from "../clients/klend/src";
 
 export const getReserveConfig = (oracle: PublicKey, ticker: string) => {
