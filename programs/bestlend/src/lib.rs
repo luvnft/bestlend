@@ -1,15 +1,38 @@
 use anchor_lang::prelude::*;
 
+mod instructions;
+mod state;
+mod utils;
+
+use crate::instructions::*;
+
 declare_id!("hackF7pNZ7dGZCGXaiPNnzxkSoyrBkyEyDTpywK9KJs");
 
 #[program]
 pub mod bestlend {
     use super::*;
 
-    pub fn initialize(ctx: Context<Initialize>) -> Result<()> {
-        Ok(())
+    pub fn init_account(
+        ctx: Context<InitAccount>,
+        collateral_group: u8,
+        debt_group: u8,
+    ) -> Result<()> {
+        handle_init_account::init_account(ctx, collateral_group, debt_group)
+    }
+
+    pub fn init_klend_account(ctx: Context<InitKlendAccount>) -> Result<()> {
+        handle_init_account::init_klend_account(ctx)
     }
 }
 
-#[derive(Accounts)]
-pub struct Initialize {}
+#[error_code]
+pub enum BestLendError {
+    #[msg("Asset groups cannot be the same")]
+    MatchingAssetGroups,
+    #[msg("Invalid oracle price")]
+    PriceNotValid,
+    #[msg("Remaining account missing")]
+    MissingAccount,
+    #[msg("Unexpected token account owner")]
+    InvalidTokenAccountOwner,
+}

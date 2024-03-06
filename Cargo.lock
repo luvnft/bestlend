@@ -610,6 +610,14 @@ name = "bestlend"
 version = "0.1.0"
 dependencies = [
  "anchor-lang",
+ "anchor-spl",
+ "bytemuck",
+ "kamino_lending",
+ "num_enum 0.7.2",
+ "pyth-sdk-solana",
+ "rust_decimal",
+ "rust_decimal_macros",
+ "solana-program",
 ]
 
 [[package]]
@@ -3482,6 +3490,16 @@ dependencies = [
  "arrayvec",
  "num-traits",
  "serde",
+]
+
+[[package]]
+name = "rust_decimal_macros"
+version = "1.26.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "4903d8db81d2321699ca8318035d6ff805c548868df435813968795a802171b2"
+dependencies = [
+ "quote 1.0.35",
+ "rust_decimal",
 ]
 
 [[package]]
