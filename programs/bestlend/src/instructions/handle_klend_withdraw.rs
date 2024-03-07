@@ -1,28 +1,12 @@
 use anchor_lang::prelude::*;
-use anchor_spl::token::{self, Token, TokenAccount};
+use anchor_spl::token::{Token, TokenAccount};
 use kamino_lending::{
-    cpi::accounts::DepositReserveLiquidityAndObligationCollateral, program::KaminoLending,
+    cpi::accounts::WithdrawObligationCollateralAndRedeemReserveCollateral, program::KaminoLending,
 };
 
 use crate::{state::BestLendUserAccount, utils::consts::PERFORMER_PUBKEY};
 
-pub fn process(ctx: Context<KlendDeposit>, amount: u64) -> Result<()> {
-    // transfer amount to the PDA which owns the obligation
-    token::transfer(
-        CpiContext::new(
-            ctx.accounts.token_program.to_account_info(),
-            anchor_spl::token::Transfer {
-                from: ctx.accounts.user_source_liquidity.to_account_info(),
-                to: ctx
-                    .accounts
-                    .bestlend_user_source_liquidity
-                    .to_account_info(),
-                authority: ctx.accounts.signer.to_account_info(),
-            },
-        ),
-        amount,
-    )?;
-
+pub fn process(ctx: Context<KlendWithdraw>, amount: u64) -> Result<()> {
     let owner_key = ctx.accounts.bestlend_user_account.owner.key();
     let signer_seeds: &[&[u8]] = &[
         b"bestlend_user_account",
@@ -30,25 +14,17 @@ pub fn process(ctx: Context<KlendDeposit>, amount: u64) -> Result<()> {
         &[*ctx.bumps.get("bestlend_user_account").unwrap()],
     ];
 
-    kamino_lending::cpi::deposit_reserve_liquidity_and_obligation_collateral(
+    kamino_lending::cpi::withdraw_obligation_collateral_and_redeem_reserve_collateral(
         CpiContext::new_with_signer(
             ctx.accounts.klend_program.to_account_info(),
-            DepositReserveLiquidityAndObligationCollateral {
+            WithdrawObligationCollateralAndRedeemReserveCollateral {
                 owner: ctx.accounts.bestlend_user_account.to_account_info(),
                 obligation: ctx.accounts.obligation.to_account_info(),
                 lending_market: ctx.accounts.lending_market.to_account_info(),
                 lending_market_authority: ctx.accounts.lending_market_authority.to_account_info(),
-                reserve: ctx.accounts.reserve.to_account_info(),
+                withdraw_reserve: ctx.accounts.reserve.to_account_info(),
                 reserve_liquidity_supply: ctx.accounts.reserve_liquidity_supply.to_account_info(),
                 reserve_collateral_mint: ctx.accounts.reserve_collateral_mint.to_account_info(),
-                reserve_destination_deposit_collateral: ctx
-                    .accounts
-                    .reserve_destination_deposit_collateral
-                    .to_account_info(),
-                user_source_liquidity: ctx
-                    .accounts
-                    .bestlend_user_source_liquidity
-                    .to_account_info(),
                 user_destination_collateral: ctx
                     .accounts
                     .user_destination_collateral
@@ -57,6 +33,14 @@ pub fn process(ctx: Context<KlendDeposit>, amount: u64) -> Result<()> {
                 instruction_sysvar_account: ctx
                     .accounts
                     .instruction_sysvar_account
+                    .to_account_info(),
+                user_destination_liquidity: ctx
+                    .accounts
+                    .user_destination_liquidity
+                    .to_account_info(),
+                reserve_source_collateral: ctx
+                    .accounts
+                    .reserve_source_deposit_collateral
                     .to_account_info(),
             },
             &[signer_seeds],
@@ -68,7 +52,7 @@ pub fn process(ctx: Context<KlendDeposit>, amount: u64) -> Result<()> {
 }
 
 #[derive(Accounts)]
-pub struct KlendDeposit<'info> {
+pub struct KlendWithdraw<'info> {
     #[account(
         mut,
         constraint = bestlend_user_account.owner.eq(&signer.key()) || signer.key().eq(&PERFORMER_PUBKEY)
@@ -82,17 +66,8 @@ pub struct KlendDeposit<'info> {
     )]
     pub bestlend_user_account: Account<'info, BestLendUserAccount>,
 
-    #[account(
-        mut,
-        token::mint = bestlend_user_source_liquidity.mint
-    )]
-    pub user_source_liquidity: Account<'info, TokenAccount>,
-
-    #[account(
-        mut,
-        token::mint = user_source_liquidity.mint
-    )]
-    pub bestlend_user_source_liquidity: Account<'info, TokenAccount>,
+    #[account(mut)]
+    pub user_destination_liquidity: Account<'info, TokenAccount>,
 
     pub token_program: Program<'info, Token>,
 
@@ -116,7 +91,7 @@ pub struct KlendDeposit<'info> {
     pub reserve_collateral_mint: AccountInfo<'info>,
     #[account(mut)]
     /// CHECK: devnet demo
-    pub reserve_destination_deposit_collateral: AccountInfo<'info>,
+    pub reserve_source_deposit_collateral: AccountInfo<'info>,
     /// CHECK: just authority
     pub lending_market_authority: AccountInfo<'info>,
     #[account(mut)]

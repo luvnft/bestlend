@@ -132,7 +132,7 @@ describe("bestlend", () => {
               reserveCollateralMint,
               reserveCollateralSupply,
             })
-            .rpc({ skipPreflight: true });
+            .rpc();
         });
       }
     });
@@ -237,6 +237,68 @@ describe("bestlend", () => {
               reserve.collateral.supplyVault,
             userSourceLiquidity: userLiquidityAta.address,
             bestlendUserSourceLiquidity: liquidityAta.address,
+            userDestinationCollateral: collateralAta.address,
+            instructionSysvarAccount: new PublicKey(
+              "Sysvar1nstructions1111111111111111111111111"
+            ),
+          })
+          .signers([user])
+          .instruction()
+      );
+
+      await sendAndConfirmTransaction(connection, tx, [user]);
+    })
+
+    it("withdraw", async () => {
+      const user = users[0]
+      const reserveKey = reserves[0]
+      const oracle = oracles[0]
+
+      const {
+        bestlendUserAccount,
+        reserve,
+        collateralAta,
+        liquidityAta,
+        userLiquidityAta,
+        obligation
+      } = await reserveAccounts(connection, user, reserveKey.publicKey);
+
+      const tx = new Transaction()
+
+      tx.add(
+        createRefreshReserveInstruction({
+          reserve: reserveKey.publicKey,
+          lendingMarket: lendingMarket.publicKey,
+          pythOracle: oracle.publicKey,
+        })
+      );
+
+      tx.add(
+        createRefreshObligationInstruction({
+          lendingMarket: lendingMarket.publicKey,
+          obligation,
+          anchorRemainingAccounts: [{
+            pubkey: reserveKey.publicKey, isSigner: false, isWritable: false
+          }]
+        })
+      );
+
+      tx.add(
+        await program.methods
+          .klendWithdraw(new BN(1e8))
+          .accounts({
+            signer: user.publicKey,
+            bestlendUserAccount,
+            obligation,
+            klendProgram: KLEND_PROGRAM_ID,
+            lendingMarket: lendingMarket.publicKey,
+            lendingMarketAuthority,
+            reserve: reserveKey.publicKey,
+            reserveLiquiditySupply: reserve.liquidity.supplyVault,
+            reserveCollateralMint: reserve.collateral.mintPubkey,
+            reserveSourceDepositCollateral:
+              reserve.collateral.supplyVault,
+            userDestinationLiquidity: userLiquidityAta.address,
             userDestinationCollateral: collateralAta.address,
             instructionSysvarAccount: new PublicKey(
               "Sysvar1nstructions1111111111111111111111111"
