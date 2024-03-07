@@ -23,6 +23,10 @@ pub mod bestlend {
     pub fn init_klend_account(ctx: Context<InitKlendAccount>) -> Result<()> {
         handle_init_account::init_klend_account(ctx)
     }
+
+    pub fn klend_deposit(ctx: Context<KlendDeposit>, liquidity_amount: u64) -> Result<()> {
+        handle_klend_deposit::process(ctx, liquidity_amount)
+    }
 }
 
 #[error_code]

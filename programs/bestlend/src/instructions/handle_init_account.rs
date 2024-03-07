@@ -18,6 +18,7 @@ pub fn init_account(ctx: Context<InitAccount>, collateral_group: u8, debt_group:
 
     require!(collateral != debt, BestLendError::MatchingAssetGroups);
 
+    ctx.accounts.bestlend_user_account.owner = ctx.accounts.owner.key();
     ctx.accounts.bestlend_user_account.address = ctx.accounts.bestlend_user_account.key();
     ctx.accounts.bestlend_user_account.price_impact_bps = BestLendUserAccount::DEFAULT_PI_BPS;
     ctx.accounts.bestlend_user_account.collateral_group = collateral.into();

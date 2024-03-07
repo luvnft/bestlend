@@ -105,12 +105,15 @@ pub const SQUADS_PROGRAM_ID_V4_MAINNET_DEV: Pubkey =
 pub const FLEX_LEND_ID_MAINNET_PROD: Pubkey =
     static_pubkey!("FL3X2pRsQ9zHENpZSKDRREtccwJuei8yg9fwDu9UN69Q");
 
-pub const CPI_WHITELISTED_ACCOUNTS: [CpiWhitelistedAccount; 5] = [
+pub const BESTLEND_ID_DEV: Pubkey = static_pubkey!("hackF7pNZ7dGZCGXaiPNnzxkSoyrBkyEyDTpywK9KJs");
+
+pub const CPI_WHITELISTED_ACCOUNTS: [CpiWhitelistedAccount; 6] = [
     CpiWhitelistedAccount::new(FLEX_LEND_ID_MAINNET_PROD, 1),
     CpiWhitelistedAccount::new(SQUADS_PROGRAM_ID_V3_MAINNET_PROD, 1),
     CpiWhitelistedAccount::new(SQUADS_PROGRAM_ID_V3_MAINNET_DEV, 1),
     CpiWhitelistedAccount::new(SQUADS_PROGRAM_ID_V4_MAINNET_PROD, 1),
     CpiWhitelistedAccount::new(SQUADS_PROGRAM_ID_V4_MAINNET_DEV, 1),
+    CpiWhitelistedAccount::new(BESTLEND_ID_DEV, 1),
 ];
 
 pub struct CpiWhitelistedAccount {

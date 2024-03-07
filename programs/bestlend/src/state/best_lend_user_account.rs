@@ -13,6 +13,7 @@ use super::{LSTS, STABLES};
 
 #[account]
 pub struct BestLendUserAccount {
+    pub owner: Pubkey,
     pub address: Pubkey,
     pub collateral_group: u8,
     pub debt_group: u8,
@@ -22,7 +23,7 @@ pub struct BestLendUserAccount {
 }
 
 impl BestLendUserAccount {
-    pub const LEN: usize = 216 + 8;
+    pub const LEN: usize = 248 + 8;
     pub const DEFAULT_PI_BPS: u8 = 10;
 }
 

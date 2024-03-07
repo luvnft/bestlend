@@ -6,10 +6,10 @@ import { MockPyth } from "../target/types/mock_pyth";
 import { PublicKey, Transaction, SystemProgram, sendAndConfirmTransaction, Keypair } from "@solana/web3.js";
 import { BN } from "bn.js";
 import { keys } from '../keys'
-import { lendingMarket, lendingMarketAuthority, reservePDAs, userPDAs } from "./accounts";
+import { lendingMarket, lendingMarketAuthority, reserveAccounts, reservePDAs, userPDAs } from "./accounts";
 import { getReserveConfig } from "./configs";
 import { airdrop, keyPairFromB58, mintToken } from "./utils";
-import { PROGRAM_ID as KLEND_PROGRAM_ID } from "../clients/klend/src";
+import { PROGRAM_ID as KLEND_PROGRAM_ID, createRefreshObligationInstruction, createRefreshReserveInstruction } from "../clients/klend/src";
 
 const ASSETS = [
   "USDC", "USDT", "SOL", "JitoSOL", "mSOL", "bSOL"
@@ -188,5 +188,65 @@ describe("bestlend", () => {
         .signers([user])
         .rpc();
     });
+
+    it("deposit", async () => {
+      const user = users[0]
+      const reserveKey = reserves[0]
+      const oracle = oracles[0]
+
+      const {
+        bestlendUserAccount,
+        reserve,
+        collateralAta,
+        liquidityAta,
+        userLiquidityAta,
+        obligation
+      } = await reserveAccounts(connection, user, reserveKey.publicKey);
+
+      const tx = new Transaction()
+
+      tx.add(
+        createRefreshReserveInstruction({
+          reserve: reserveKey.publicKey,
+          lendingMarket: lendingMarket.publicKey,
+          pythOracle: oracle.publicKey,
+        })
+      );
+
+      tx.add(
+        createRefreshObligationInstruction({
+          lendingMarket: lendingMarket.publicKey,
+          obligation,
+        })
+      );
+
+      tx.add(
+        await program.methods
+          .klendDeposit(new BN(1e9))
+          .accounts({
+            signer: user.publicKey,
+            bestlendUserAccount,
+            obligation,
+            klendProgram: KLEND_PROGRAM_ID,
+            lendingMarket: lendingMarket.publicKey,
+            lendingMarketAuthority,
+            reserve: reserveKey.publicKey,
+            reserveLiquiditySupply: reserve.liquidity.supplyVault,
+            reserveCollateralMint: reserve.collateral.mintPubkey,
+            reserveDestinationDepositCollateral:
+              reserve.collateral.supplyVault,
+            userSourceLiquidity: userLiquidityAta.address,
+            bestlendUserSourceLiquidity: liquidityAta.address,
+            userDestinationCollateral: collateralAta.address,
+            instructionSysvarAccount: new PublicKey(
+              "Sysvar1nstructions1111111111111111111111111"
+            ),
+          })
+          .signers([user])
+          .instruction()
+      );
+
+      await sendAndConfirmTransaction(connection, tx, [user], { skipPreflight: true });
+    })
   });
 });
