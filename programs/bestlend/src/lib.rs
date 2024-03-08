@@ -20,20 +20,23 @@ pub mod bestlend {
         handle_init_account::init_account(ctx, collateral_group, debt_group)
     }
 
+    /*
+     * Kamino Lend instructions
+     */
     pub fn init_klend_account(ctx: Context<InitKlendAccount>) -> Result<()> {
         handle_init_account::init_klend_account(ctx)
     }
-
     pub fn klend_deposit(ctx: Context<KlendDeposit>, amount: u64) -> Result<()> {
         handle_klend_deposit::process(ctx, amount)
     }
-
     pub fn klend_withdraw(ctx: Context<KlendWithdraw>, amount: u64) -> Result<()> {
         handle_klend_withdraw::process(ctx, amount)
     }
-
     pub fn klend_borrow(ctx: Context<KlendBorrow>, amount: u64) -> Result<()> {
         handle_klend_borrow::process(ctx, amount)
+    }
+    pub fn klend_repay(ctx: Context<KlendRepay>, amount: u64) -> Result<()> {
+        handle_klend_repay::process(ctx, amount)
     }
 }
 

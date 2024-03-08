@@ -318,7 +318,6 @@ describe("bestlend", () => {
 
     it("borrow", async () => {
       const user = users[0]
-      const oracle = oracles[0]
       const reserveKey = reserves[0]
       const borrowReserveKey = reserves[1]
 
@@ -365,6 +364,66 @@ describe("bestlend", () => {
             reserveSourceLiquidity: reserve.liquidity.supplyVault,
             borrowReserveLiquidityFeeReceiver: reserve.liquidity.feeVault,
             userDestinationLiquidity: userLiquidityAta.address,
+            instructionSysvarAccount: new PublicKey(
+              "Sysvar1nstructions1111111111111111111111111"
+            ),
+          })
+          .signers([user])
+          .instruction()
+      );
+
+      await sendAndConfirmTransaction(connection, tx, [user], { skipPreflight: true });
+    })
+
+    it("repay", async () => {
+      const user = users[0]
+      const reserveKey = reserves[0]
+      const borrowReserveKey = reserves[1]
+
+      const {
+        bestlendUserAccount,
+        reserve,
+        liquidityAta,
+        userLiquidityAta,
+        obligation
+      } = await reserveAccounts(connection, user, borrowReserveKey.publicKey);
+
+      const tx = new Transaction()
+
+      for (let i = 0; i < 2; i++) {
+        tx.add(
+          createRefreshReserveInstruction({
+            reserve: reserves[i].publicKey,
+            lendingMarket: lendingMarket.publicKey,
+            pythOracle: oracles[i].publicKey,
+          })
+        );
+      }
+
+      tx.add(
+        createRefreshObligationInstruction({
+          lendingMarket: lendingMarket.publicKey,
+          obligation,
+          anchorRemainingAccounts: [
+            { pubkey: reserveKey.publicKey, isSigner: false, isWritable: false },
+            { pubkey: borrowReserveKey.publicKey, isSigner: false, isWritable: false },
+          ]
+        })
+      );
+
+      tx.add(
+        await program.methods
+          .klendRepay(new BN(1e2))
+          .accounts({
+            signer: user.publicKey,
+            bestlendUserAccount,
+            obligation,
+            klendProgram: KLEND_PROGRAM_ID,
+            lendingMarket: lendingMarket.publicKey,
+            reserve: borrowReserveKey.publicKey,
+            reserveDestinationLiquidity: reserve.liquidity.supplyVault,
+            userSourceLiquidity: userLiquidityAta.address,
+            bestlendUserSourceLiquidity: liquidityAta.address,
             instructionSysvarAccount: new PublicKey(
               "Sysvar1nstructions1111111111111111111111111"
             ),
