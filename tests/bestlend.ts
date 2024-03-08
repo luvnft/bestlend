@@ -88,31 +88,33 @@ describe("bestlend", () => {
         .rpc();
     });
 
-    describe("initReserve", async () => {
+    it("initReserves", async () => {
+      const size = 8616 + 8;
+      const minBalance = await connection.getMinimumBalanceForRentExemption(
+        size
+      );
+
+      const promises = []
       for (let i = 0; i < numReserves; i++) {
-        it(ASSETS[i], async () => {
-          const mint = mints[i];
-          const reserve = reserves[i];
+        const mint = mints[i];
+        const reserve = reserves[i];
 
-          const {
-            feeReceiver,
-            reserveLiquiditySupply,
-            reserveCollateralMint,
-            reserveCollateralSupply,
-          } = reservePDAs(mint)
+        const {
+          feeReceiver,
+          reserveLiquiditySupply,
+          reserveCollateralMint,
+          reserveCollateralSupply,
+        } = reservePDAs(mint)
 
-          const size = 8616 + 8;
-          const minBalance = await connection.getMinimumBalanceForRentExemption(
-            size
-          );
-          const createReserveAccountTx = SystemProgram.createAccount({
-            fromPubkey: signer.publicKey,
-            newAccountPubkey: reserve.publicKey,
-            lamports: minBalance,
-            space: size,
-            programId: klend.programId,
-          });
+        const createReserveAccountTx = SystemProgram.createAccount({
+          fromPubkey: signer.publicKey,
+          newAccountPubkey: reserve.publicKey,
+          lamports: minBalance,
+          space: size,
+          programId: klend.programId,
+        });
 
+        const send = async () => {
           const tx = new Transaction().add(createReserveAccountTx);
           await sendAndConfirmTransaction(connection, tx, [
             signer.payer,
@@ -133,31 +135,36 @@ describe("bestlend", () => {
               reserveCollateralSupply,
             })
             .rpc();
-        });
+        }
+        promises.push(send())
       }
+      await Promise.all(promises)
     });
 
-    describe("updateReserveConfig", async () => {
+    it("updateReserveConfigs", async () => {
+      const promises = []
       for (let i = 0; i < numReserves; i++) {
-        it(ASSETS[i], async () => {
-          const reserve = reserves[i];
-          const configBytes = getReserveConfig(oracles[i].publicKey, ASSETS[i], PRICES[i], 4)
+        const reserve = reserves[i];
+        const configBytes = getReserveConfig(oracles[i].publicKey, ASSETS[i], PRICES[i], 4)
 
-          await klend.methods
+        promises.push(
+          klend.methods
             .updateEntireReserveConfig(new BN(25), configBytes)
             .accounts({
               lendingMarketOwner: signer.publicKey,
               lendingMarket: lendingMarket.publicKey,
               reserve: reserve.publicKey,
             })
-            .rpc();
-        });
+            .rpc()
+        );
       }
+      await Promise.all(promises)
     });
   })
 
   describe("bestlend", async () => {
     it("init account", async () => {
+      const promises = []
       for (let i = 0; i < users.length; i++) {
         const user = users[i]
 
@@ -167,31 +174,37 @@ describe("bestlend", () => {
           obligation
         } = userPDAs(user.publicKey)
 
-        await program.methods.initAccount(0, 1)
-          .accounts({
-            owner: user.publicKey,
-            bestlendUserAccount,
-          })
-          .signers([user])
-          .rpc();
+        const send = async () => {
+          await program.methods.initAccount(0, 1)
+            .accounts({
+              owner: user.publicKey,
+              bestlendUserAccount,
+            })
+            .signers([user])
+            .rpc();
 
-        await program.methods.initKlendAccount()
-          .accounts({
-            owner: user.publicKey,
-            bestlendUserAccount,
-            obligation,
-            lendingMarket: lendingMarket.publicKey,
-            seed1Account: PublicKey.default,
-            seed2Account: PublicKey.default,
-            userMetadata: userMetadata,
-            klendProgram: KLEND_PROGRAM_ID
-          })
-          .signers([user])
-          .rpc();
+          await program.methods.initKlendAccount()
+            .accounts({
+              owner: user.publicKey,
+              bestlendUserAccount,
+              obligation,
+              lendingMarket: lendingMarket.publicKey,
+              seed1Account: PublicKey.default,
+              seed2Account: PublicKey.default,
+              userMetadata: userMetadata,
+              klendProgram: KLEND_PROGRAM_ID
+            })
+            .signers([user])
+            .rpc();
+        }
+        promises.push(send())
       }
+      await Promise.all(promises)
     });
 
     it("deposit every asset", async () => {
+      const promises = []
+
       // get every user to deposit so each coin can be borrowed
       for (let i = 0; i < users.length; i++) {
         const user = users[i]
@@ -250,8 +263,10 @@ describe("bestlend", () => {
             .instruction()
         );
 
-        await sendAndConfirmTransaction(connection, tx, [user], { skipPreflight: true });
+        promises.push(sendAndConfirmTransaction(connection, tx, [user], { skipPreflight: true }));
       }
+
+      await Promise.all(promises)
     })
 
     it("withdraw", async () => {
