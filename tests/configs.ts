@@ -2,7 +2,7 @@ import BN from "bn.js";
 import { PublicKey } from "@solana/web3.js";
 import { reserveConfigBeet } from "../clients/klend/src";
 
-export const getReserveConfig = (oracle: PublicKey, ticker: string) => {
+export const getReserveConfig = (oracle: PublicKey, ticker: string, currentPrice: number, priceExpo: number) => {
   const mintTicker = Array(32).fill(0);
   Buffer.from(ticker).forEach((b, i) => (mintTicker[i] = b));
 
@@ -81,9 +81,9 @@ export const getReserveConfig = (oracle: PublicKey, ticker: string) => {
     tokenInfo: {
       "name": mintTicker,
       "heuristic": {
-        "lower": 7,
-        "upper": 12,
-        "exp": 1
+        "lower": Math.floor(currentPrice / 2),
+        "upper": currentPrice * 2,
+        "exp": priceExpo
       },
       maxTwapDivergenceBps: 1000,
       maxAgePriceSeconds: new BN("99999999999"),

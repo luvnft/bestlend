@@ -31,6 +31,10 @@ pub mod bestlend {
     pub fn klend_withdraw(ctx: Context<KlendWithdraw>, amount: u64) -> Result<()> {
         handle_klend_withdraw::process(ctx, amount)
     }
+
+    pub fn klend_borrow(ctx: Context<KlendBorrow>, amount: u64) -> Result<()> {
+        handle_klend_borrow::process(ctx, amount)
+    }
 }
 
 #[error_code]
