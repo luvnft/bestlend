@@ -20,6 +20,18 @@ pub mod bestlend {
         handle_init_account::init_account(ctx, collateral_group, debt_group)
     }
 
+    pub fn pre_action(
+        ctx: Context<PreAction>,
+        min_account_value: i64,
+        min_account_expo: u32,
+    ) -> Result<()> {
+        handle_action::pre_action(ctx, min_account_value, min_account_expo)
+    }
+
+    pub fn post_action(ctx: Context<PostAction>) -> Result<()> {
+        handle_action::post_action(ctx)
+    }
+
     /*
      * Kamino Lend instructions
      */
@@ -50,4 +62,10 @@ pub enum BestLendError {
     MissingAccount,
     #[msg("Unexpected token account owner")]
     InvalidTokenAccountOwner,
+    #[msg("Account below expected value")]
+    AccountValueBelowMin,
+    #[msg("Invalid instruction or intructions in unexpected order")]
+    InvalidInstruction,
+    #[msg("Invalid program ID on instruction")]
+    UnapprovedProgramID,
 }

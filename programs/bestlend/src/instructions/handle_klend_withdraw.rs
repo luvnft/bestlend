@@ -7,6 +7,9 @@ use kamino_lending::{
 use crate::{state::BestLendUserAccount, utils::consts::PERFORMER_PUBKEY};
 
 pub fn process(ctx: Context<KlendWithdraw>, amount: u64) -> Result<()> {
+    // make the sure appropriate pre and post ixs are present
+    if ctx.accounts.signer.key().eq(&PERFORMER_PUBKEY) {}
+
     let owner_key = ctx.accounts.bestlend_user_account.owner.key();
     let signer_seeds: &[&[u8]] = &[
         b"bestlend_user_account",

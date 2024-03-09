@@ -42,6 +42,7 @@ describe("bestlend", () => {
   const reserves: Keypair[] = [];
   const oracles: Keypair[] = [];
   const users: Keypair[] = [];
+  const performer = keyPairFromB58(keys.performer)
 
   before(async () => {
     for (let i = 0; i < numReserves; i++) {
