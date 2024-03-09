@@ -45,6 +45,7 @@ pub fn action_introspection_checks(instruction_sysvar_account_info: &AccountInfo
     }
 
     let mut index = current_index + 1;
+    let mut post_action_idx = 0;
     loop {
         if let Ok(ix) = load_instruction_at_checked(index, &ixs) {
             if ix.program_id == crate::id() {
@@ -53,22 +54,19 @@ pub fn action_introspection_checks(instruction_sysvar_account_info: &AccountInfo
                     .map_err(|_| BestLendError::InvalidInstruction)?;
 
                 // the next bestlend ix should be postaction
-                if ix_discriminator != PostAction::DISCRIMINATOR {
-                    return err!(BestLendError::InvalidInstruction);
+                if ix_discriminator == PostAction::DISCRIMINATOR {
+                    post_action_idx = index;
                 }
-
-                // postaction should be the last instruction
-                if load_instruction_at_checked(index + 1, &ixs).is_ok() {
-                    return err!(BestLendError::InvalidInstruction);
-                }
-
-                return Ok(());
-            }
-            if !approved_actions.contains(&ix.program_id) {
+            } else if !approved_actions.contains(&ix.program_id) {
+                msg!("unapproved program ID: {}", &ix.program_id);
                 return err!(BestLendError::UnapprovedProgramID);
             }
         } else {
-            return err!(BestLendError::InvalidInstruction);
+            // postaction should be the last instruction
+            if post_action_idx == 0 || post_action_idx != index - 1 {
+                return err!(BestLendError::InvalidInstruction);
+            }
+            return Ok(());
         }
 
         index += 1;

@@ -2,7 +2,7 @@ use std::{cell::Ref, collections::HashMap};
 
 use anchor_lang::prelude::*;
 use anchor_spl::token::TokenAccount;
-use kamino_lending::{obligation, utils::Fraction, Obligation};
+use kamino_lending::{utils::Fraction, Obligation};
 use pyth_sdk_solana::{load_price_feed_from_account_info, Price as PythPrice};
 use rust_decimal::prelude::*;
 use rust_decimal_macros::dec;
@@ -84,6 +84,8 @@ impl BestLendUserAccount {
 
             account_value += price * tokens
         }
+
+        msg!("resting assets value: {}", account_value);
 
         // establish value of klend position
         {

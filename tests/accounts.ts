@@ -85,8 +85,9 @@ export const userPDAs = (user: PublicKey) => {
     }
 }
 
-const reserveAccounts = async (connection: Connection, user: Keypair, reserveKey: PublicKey) => {
+const reserveAccounts = async (connection: Connection, user: Keypair, reserveKey: PublicKey, performer?: Keypair) => {
     const reserve = await Reserve.fromAccountAddress(connection, reserveKey);
+    const payer = performer ?? user
 
     const [bestlendUserAccount] = PublicKey.findProgramAddressSync(
         [Buffer.from("bestlend_user_account"), user.publicKey.toBuffer()],
@@ -96,23 +97,23 @@ const reserveAccounts = async (connection: Connection, user: Keypair, reserveKey
     // user account PDA ATAs
     const collateralAta = await getOrCreateAssociatedTokenAccount(
         connection,
-        user,
+        payer,
         reserve.collateral.mintPubkey,
         bestlendUserAccount,
         true
     );
     const liquidityAta = await getOrCreateAssociatedTokenAccount(
         connection,
-        user,
+        payer,
         reserve.liquidity.mintPubkey,
         bestlendUserAccount,
         true
     );
     const userLiquidityAta = await getOrCreateAssociatedTokenAccount(
         connection,
-        user,
+        payer,
         reserve.liquidity.mintPubkey,
-        user.publicKey,
+        payer.publicKey,
         true
     );
 

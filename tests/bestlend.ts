@@ -511,12 +511,13 @@ describe("bestlend", () => {
     })
 
     it("performer withdraw and deposit same", async () => {
-      const [bestlendUserAccount] = PublicKey.findProgramAddressSync(
-        [Buffer.from("bestlend_user_account"), users[0].publicKey.toBuffer()],
-        program.programId
-      );
-
-      const { obligation } = await reserveAccounts(connection, users[0], reserves[0].publicKey);
+      const {
+        bestlendUserAccount,
+        reserve,
+        collateralAta,
+        userLiquidityAta,
+        obligation
+      } = await reserveAccounts(connection, users[0], reserves[0].publicKey, performer);
 
       const valueRemainingAccounts = await accountValueRemainingAccounts(
         connection, performer, users[0].publicKey, mints, oracles.map(o => o.publicKey),
@@ -524,8 +525,9 @@ describe("bestlend", () => {
 
       const tx = new Transaction()
 
+      let refreshIxs = []
       for (let i = 0; i < 2; i++) {
-        tx.add(
+        refreshIxs.push(
           createRefreshReserveInstruction({
             reserve: reserves[i].publicKey,
             lendingMarket: lendingMarket.publicKey,
@@ -534,7 +536,7 @@ describe("bestlend", () => {
         );
       }
 
-      tx.add(
+      refreshIxs.push(
         createRefreshObligationInstruction({
           lendingMarket: lendingMarket.publicKey,
           obligation,
@@ -545,7 +547,11 @@ describe("bestlend", () => {
         })
       );
 
+      tx.add(...refreshIxs)
 
+      /**
+       * PRE ACTION
+       */
       tx.add(
         await program.methods.preAction(new BN(479925), 2)
           .accounts({
@@ -560,6 +566,84 @@ describe("bestlend", () => {
           .instruction()
       )
 
+      /**
+       * REBALANCE
+       */
+      refreshIxs = []
+      for (let i = 1; i >= 0; i--) {
+        refreshIxs.push(
+          createRefreshReserveInstruction({
+            reserve: reserves[i].publicKey,
+            lendingMarket: lendingMarket.publicKey,
+            pythOracle: oracles[i].publicKey,
+          })
+        );
+      }
+
+      refreshIxs.push(
+        createRefreshObligationInstruction({
+          lendingMarket: lendingMarket.publicKey,
+          obligation,
+          anchorRemainingAccounts: [
+            { pubkey: reserves[0].publicKey, isSigner: false, isWritable: false },
+            { pubkey: reserves[1].publicKey, isSigner: false, isWritable: false },
+          ]
+        })
+      );
+
+      tx.add(...refreshIxs)
+
+      tx.add(
+        await program.methods
+          .klendWithdraw(new BN(1e8))
+          .accounts({
+            signer: performer.publicKey,
+            bestlendUserAccount,
+            obligation,
+            klendProgram: KLEND_PROGRAM_ID,
+            lendingMarket: lendingMarket.publicKey,
+            lendingMarketAuthority,
+            reserve: reserves[0].publicKey,
+            reserveLiquiditySupply: reserve.liquidity.supplyVault,
+            reserveCollateralMint: reserve.collateral.mintPubkey,
+            reserveSourceDepositCollateral:
+              reserve.collateral.supplyVault,
+            userDestinationLiquidity: userLiquidityAta.address,
+            userDestinationCollateral: collateralAta.address,
+            instructions: new PublicKey(
+              "Sysvar1nstructions1111111111111111111111111"
+            ),
+          })
+          .instruction()
+      );
+
+      refreshIxs = []
+      for (let i = 1; i >= 0; i--) {
+        refreshIxs.push(
+          createRefreshReserveInstruction({
+            reserve: reserves[i].publicKey,
+            lendingMarket: lendingMarket.publicKey,
+            pythOracle: oracles[i].publicKey,
+          })
+        );
+      }
+
+      refreshIxs.push(
+        createRefreshObligationInstruction({
+          lendingMarket: lendingMarket.publicKey,
+          obligation,
+          anchorRemainingAccounts: [
+            { pubkey: reserves[0].publicKey, isSigner: false, isWritable: false },
+            { pubkey: reserves[1].publicKey, isSigner: false, isWritable: false },
+          ]
+        })
+      );
+
+      tx.add(...refreshIxs)
+
+      /**
+       * POST ACTION
+       */
       tx.add(
         await program.methods.postAction()
           .accounts({
