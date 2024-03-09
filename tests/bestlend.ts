@@ -3,6 +3,7 @@ import { Program } from "@coral-xyz/anchor";
 import { Bestlend } from "../target/types/bestlend";
 import { KaminoLending } from "../target/types/kamino_lending";
 import { MockPyth } from "../target/types/mock_pyth";
+import { DummySwap } from "../target/types/dummy_swap";
 import { PublicKey, Transaction, SystemProgram, sendAndConfirmTransaction, Keypair } from "@solana/web3.js";
 import { BN } from "bn.js";
 import { keys } from '../keys'
@@ -10,7 +11,7 @@ import { lendingMarket, lendingMarketAuthority, reserveAccounts, reservePDAs, us
 import { getReserveConfig } from "./configs";
 import { airdrop, keyPairFromB58, mintToken } from "./utils";
 import { PROGRAM_ID as KLEND_PROGRAM_ID, createRefreshObligationInstruction, createRefreshReserveInstruction } from "../clients/klend/src";
-import { KaminoMarket, VanillaObligation } from "@hubbleprotocol/kamino-lending-sdk";
+import { KaminoMarket } from "@hubbleprotocol/kamino-lending-sdk";
 import { assert } from "chai";
 
 const ASSETS = [
@@ -29,6 +30,12 @@ describe("bestlend", () => {
   const program = anchor.workspace.Bestlend as Program<Bestlend>;
   const klend = anchor.workspace.KaminoLending as Program<KaminoLending>;
   const oracleProgram = anchor.workspace.MockPyth as Program<MockPyth>;
+  const dummySwap = anchor.workspace.DummySwap as Program<DummySwap>;
+
+  const [dummySwapPDA] = PublicKey.findProgramAddressSync(
+    [Buffer.from("token_holder")],
+    dummySwap.programId
+  );
 
   const numReserves = ASSETS.length;
   const mints: PublicKey[] = [];
@@ -43,7 +50,7 @@ describe("bestlend", () => {
       users.push(Keypair.generate());
 
       await airdrop(provider, users[i].publicKey);
-      mints.push(await mintToken(connection, users[i], ASSETS[i], keyPairFromB58(keys.mints[ASSETS[i]])));
+      mints.push(await mintToken(connection, users[i], ASSETS[i], keyPairFromB58(keys.mints[ASSETS[i]]), [dummySwapPDA]));
     }
   });
 

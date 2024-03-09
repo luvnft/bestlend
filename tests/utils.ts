@@ -1,7 +1,7 @@
 import * as anchor from "@coral-xyz/anchor";
 import { bs58 } from "@coral-xyz/anchor/dist/cjs/utils/bytes";
 import { getOrCreateAssociatedTokenAccount, createMint, mintTo } from "@solana/spl-token";
-import { Keypair, Connection } from "@solana/web3.js";
+import { Keypair, Connection, PublicKey } from "@solana/web3.js";
 
 
 export const keyPairFromB58 = (s: string): Keypair => {
@@ -19,17 +19,21 @@ export const airdrop = async (
   );
 };
 
-export const mintToken = async (connection: Connection, owner: Keypair, ticker: string, keypair: Keypair) => {
+export const mintToken = async (connection: Connection, owner: Keypair, ticker: string, keypair: Keypair, users?: PublicKey[]) => {
   const dec = ticker.includes("USD") ? 6 : 9
   const mint = await createMint(connection, owner, owner.publicKey, null, dec, keypair);
 
-  const ata = await getOrCreateAssociatedTokenAccount(
-    connection,
-    owner,
-    mint,
-    owner.publicKey
-  );
+  for (let user of [...(users || []), owner.publicKey]) {
+    const ata = await getOrCreateAssociatedTokenAccount(
+      connection,
+      owner,
+      mint,
+      user,
+      true
+    );
 
-  await mintTo(connection, owner, mint, ata.address, owner.publicKey, 1e10);
+    await mintTo(connection, owner, mint, ata.address, owner, 1e10)
+  }
+
   return mint;
 };
