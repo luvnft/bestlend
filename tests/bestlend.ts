@@ -4,10 +4,10 @@ import { Bestlend } from "../target/types/bestlend";
 import { KaminoLending } from "../target/types/kamino_lending";
 import { MockPyth } from "../target/types/mock_pyth";
 import { DummySwap } from "../target/types/dummy_swap";
-import { PublicKey, Transaction, SystemProgram, sendAndConfirmTransaction, Keypair } from "@solana/web3.js";
+import { PublicKey, Transaction, SystemProgram, sendAndConfirmTransaction, Keypair, AccountMeta } from "@solana/web3.js";
 import { BN } from "bn.js";
 import { keys } from '../keys'
-import { lendingMarket, lendingMarketAuthority, reserveAccounts, reservePDAs, userPDAs } from "./accounts";
+import { accountValueRemainingAccounts, lendingMarket, lendingMarketAuthority, reserveAccounts, reservePDAs, userPDAs } from "./accounts";
 import { getReserveConfig } from "./configs";
 import { airdrop, keyPairFromB58, mintToken } from "./utils";
 import { PROGRAM_ID as KLEND_PROGRAM_ID, createRefreshObligationInstruction, createRefreshReserveInstruction } from "../clients/klend/src";
@@ -53,6 +53,8 @@ describe("bestlend", () => {
       await airdrop(provider, users[i].publicKey);
       mints.push(await mintToken(connection, users[i], ASSETS[i], keyPairFromB58(keys.mints[ASSETS[i]]), [dummySwapPDA]));
     }
+
+    await airdrop(provider, performer.publicKey);
   });
 
   describe("setup klend fork", async () => {
@@ -330,7 +332,7 @@ describe("bestlend", () => {
               reserve.collateral.supplyVault,
             userDestinationLiquidity: userLiquidityAta.address,
             userDestinationCollateral: collateralAta.address,
-            instructionSysvarAccount: new PublicKey(
+            instructions: new PublicKey(
               "Sysvar1nstructions1111111111111111111111111"
             ),
           })
@@ -389,7 +391,7 @@ describe("bestlend", () => {
             reserveSourceLiquidity: reserve.liquidity.supplyVault,
             borrowReserveLiquidityFeeReceiver: reserve.liquidity.feeVault,
             userDestinationLiquidity: userLiquidityAta.address,
-            instructionSysvarAccount: new PublicKey(
+            instructions: new PublicKey(
               "Sysvar1nstructions1111111111111111111111111"
             ),
           })
@@ -506,6 +508,73 @@ describe("bestlend", () => {
       const borrowValue = obl.getBorrowedMarketValue().toNumber()
       assert.equal(depositValue.toFixed(2), "4899.02")
       assert.equal(borrowValue.toFixed(2), "99.77")
+    })
+
+    it("performer withdraw and deposit same", async () => {
+      const [bestlendUserAccount] = PublicKey.findProgramAddressSync(
+        [Buffer.from("bestlend_user_account"), users[0].publicKey.toBuffer()],
+        program.programId
+      );
+
+      const { obligation } = await reserveAccounts(connection, users[0], reserves[0].publicKey);
+
+      const valueRemainingAccounts = await accountValueRemainingAccounts(
+        connection, performer, users[0].publicKey, mints, oracles.map(o => o.publicKey),
+      )
+
+      const tx = new Transaction()
+
+      for (let i = 0; i < 2; i++) {
+        tx.add(
+          createRefreshReserveInstruction({
+            reserve: reserves[i].publicKey,
+            lendingMarket: lendingMarket.publicKey,
+            pythOracle: oracles[i].publicKey,
+          })
+        );
+      }
+
+      tx.add(
+        createRefreshObligationInstruction({
+          lendingMarket: lendingMarket.publicKey,
+          obligation,
+          anchorRemainingAccounts: [
+            { pubkey: reserves[0].publicKey, isSigner: false, isWritable: false },
+            { pubkey: reserves[1].publicKey, isSigner: false, isWritable: false },
+          ]
+        })
+      );
+
+
+      tx.add(
+        await program.methods.preAction(new BN(479925), 2)
+          .accounts({
+            signer: performer.publicKey,
+            bestlendUserAccount,
+            klendObligation: obligation,
+            instructions: new PublicKey(
+              "Sysvar1nstructions1111111111111111111111111"
+            ),
+          })
+          .remainingAccounts(valueRemainingAccounts)
+          .instruction()
+      )
+
+      tx.add(
+        await program.methods.postAction()
+          .accounts({
+            signer: performer.publicKey,
+            bestlendUserAccount,
+            klendObligation: obligation,
+            instructions: new PublicKey(
+              "Sysvar1nstructions1111111111111111111111111"
+            ),
+          })
+          .remainingAccounts(valueRemainingAccounts)
+          .instruction()
+      )
+
+      await sendAndConfirmTransaction(connection, tx, [performer], { skipPreflight: true });
     })
   });
 });

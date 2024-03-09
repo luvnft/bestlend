@@ -1,7 +1,8 @@
-use std::collections::HashMap;
+use std::{cell::Ref, collections::HashMap};
 
 use anchor_lang::prelude::*;
 use anchor_spl::token::TokenAccount;
+use kamino_lending::{obligation, utils::Fraction, Obligation};
 use pyth_sdk_solana::{load_price_feed_from_account_info, Price as PythPrice};
 use rust_decimal::prelude::*;
 use rust_decimal_macros::dec;
@@ -28,7 +29,11 @@ impl BestLendUserAccount {
 }
 
 impl BestLendUserAccount {
-    pub fn account_value(&mut self, remaining_accounts: &[AccountInfo]) -> Result<Decimal> {
+    pub fn account_value(
+        &mut self,
+        klend_obligation: Ref<Obligation>,
+        remaining_accounts: &[AccountInfo],
+    ) -> Result<Decimal> {
         let mut accounts = HashMap::new();
         let mut token_accounts = HashMap::new();
 
@@ -78,6 +83,19 @@ impl BestLendUserAccount {
             let tokens = Decimal::new(token_act.unwrap().amount as i64, asset.decimals as u32);
 
             account_value += price * tokens
+        }
+
+        // establish value of klend position
+        {
+            let sf_deposit_value = Fraction::from_bits(klend_obligation.deposited_value_sf);
+            let sf_borrow_value =
+                Fraction::from_bits(klend_obligation.borrowed_assets_market_value_sf);
+
+            let deposit_value = Decimal::from_str_exact(&sf_deposit_value.to_string()).unwrap();
+            let borrow_value = Decimal::from_str_exact(&sf_borrow_value.to_string()).unwrap();
+
+            msg!("klend position value: {}", deposit_value - borrow_value);
+            account_value = account_value + deposit_value - borrow_value;
         }
 
         let precision = 6;

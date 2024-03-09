@@ -3,12 +3,18 @@ use anchor_spl::token::{Token, TokenAccount};
 use kamino_lending::{
     cpi::accounts::WithdrawObligationCollateralAndRedeemReserveCollateral, program::KaminoLending,
 };
+use solana_program::sysvar;
 
-use crate::{state::BestLendUserAccount, utils::consts::PERFORMER_PUBKEY};
+use crate::{
+    state::BestLendUserAccount,
+    utils::{consts::PERFORMER_PUBKEY, has_pre_action},
+};
 
 pub fn process(ctx: Context<KlendWithdraw>, amount: u64) -> Result<()> {
     // make the sure appropriate pre and post ixs are present
-    if ctx.accounts.signer.key().eq(&PERFORMER_PUBKEY) {}
+    if ctx.accounts.signer.key().eq(&PERFORMER_PUBKEY) {
+        has_pre_action(&ctx.accounts.instructions)?;
+    }
 
     let owner_key = ctx.accounts.bestlend_user_account.owner.key();
     let signer_seeds: &[&[u8]] = &[
@@ -33,10 +39,7 @@ pub fn process(ctx: Context<KlendWithdraw>, amount: u64) -> Result<()> {
                     .user_destination_collateral
                     .to_account_info(),
                 token_program: ctx.accounts.token_program.to_account_info(),
-                instruction_sysvar_account: ctx
-                    .accounts
-                    .instruction_sysvar_account
-                    .to_account_info(),
+                instruction_sysvar_account: ctx.accounts.instructions.to_account_info(),
                 user_destination_liquidity: ctx
                     .accounts
                     .user_destination_liquidity
@@ -74,6 +77,10 @@ pub struct KlendWithdraw<'info> {
 
     pub token_program: Program<'info, Token>,
 
+    /// CHECK: address on account checked
+    #[account(address = sysvar::instructions::ID)]
+    pub instructions: AccountInfo<'info>,
+
     /*
      * klend accounts
      */
@@ -100,6 +107,4 @@ pub struct KlendWithdraw<'info> {
     #[account(mut)]
     /// CHECK: devnet demo
     pub user_destination_collateral: AccountInfo<'info>,
-    /// CHECK: devnet demo
-    pub instruction_sysvar_account: AccountInfo<'info>,
 }

@@ -1,10 +1,19 @@
 use anchor_lang::prelude::*;
 use anchor_spl::token::{Token, TokenAccount};
 use kamino_lending::{cpi::accounts::BorrowObligationLiquidity, program::KaminoLending};
+use solana_program::sysvar;
 
-use crate::{state::BestLendUserAccount, utils::consts::PERFORMER_PUBKEY};
+use crate::{
+    state::BestLendUserAccount,
+    utils::{consts::PERFORMER_PUBKEY, has_pre_action},
+};
 
 pub fn process(ctx: Context<KlendBorrow>, amount: u64) -> Result<()> {
+    // make the sure appropriate pre and post ixs are present
+    if ctx.accounts.signer.key().eq(&PERFORMER_PUBKEY) {
+        has_pre_action(&ctx.accounts.instructions)?;
+    }
+
     let owner_key = ctx.accounts.bestlend_user_account.owner.key();
     let signer_seeds: &[&[u8]] = &[
         b"bestlend_user_account",
@@ -32,10 +41,7 @@ pub fn process(ctx: Context<KlendBorrow>, amount: u64) -> Result<()> {
                     .user_destination_liquidity
                     .to_account_info(),
                 referrer_token_state: Option::None,
-                instruction_sysvar_account: ctx
-                    .accounts
-                    .instruction_sysvar_account
-                    .to_account_info(),
+                instruction_sysvar_account: ctx.accounts.instructions.to_account_info(),
             },
             &[signer_seeds],
         ),
@@ -63,6 +69,10 @@ pub struct KlendBorrow<'info> {
     #[account(mut)]
     pub user_destination_liquidity: Account<'info, TokenAccount>,
 
+    /// CHECK: address on account checked
+    #[account(address = sysvar::instructions::ID)]
+    pub instructions: AccountInfo<'info>,
+
     /*
      * klend accounts
      */
@@ -77,8 +87,6 @@ pub struct KlendBorrow<'info> {
     pub reserve: AccountInfo<'info>,
     /// CHECK: just authority
     pub lending_market_authority: AccountInfo<'info>,
-    /// CHECK: devnet demo
-    pub instruction_sysvar_account: AccountInfo<'info>,
     #[account(mut)]
     /// CHECK: devnet demo
     pub reserve_source_liquidity: AccountInfo<'info>,

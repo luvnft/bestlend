@@ -2,7 +2,7 @@ import * as anchor from "@coral-xyz/anchor";
 import { Program } from '@coral-xyz/anchor';
 import { keys } from '../keys'
 import { KaminoLending } from '../target/types/kamino_lending';
-import { PublicKey, Connection, Keypair } from "@solana/web3.js";
+import { PublicKey, Connection, Keypair, Signer, AccountMeta } from "@solana/web3.js";
 import { keyPairFromB58 } from "./utils";
 import { Bestlend } from "../target/types/bestlend";
 import { getOrCreateAssociatedTokenAccount } from "@solana/spl-token";
@@ -85,7 +85,7 @@ export const userPDAs = (user: PublicKey) => {
     }
 }
 
-export const reserveAccounts = async (connection: Connection, user: Keypair, reserveKey: PublicKey) => {
+const reserveAccounts = async (connection: Connection, user: Keypair, reserveKey: PublicKey) => {
     const reserve = await Reserve.fromAccountAddress(connection, reserveKey);
 
     const [bestlendUserAccount] = PublicKey.findProgramAddressSync(
@@ -138,4 +138,34 @@ export const reserveAccounts = async (connection: Connection, user: Keypair, res
     }
 }
 
-export { lendingMarket, lendingMarketAuthority, reservePDAs }
+const accountValueRemainingAccounts = async (connection: Connection, signer: Signer, user: PublicKey, mints: PublicKey[], oracles: PublicKey[]) => {
+    const [bestlendUserAccount] = PublicKey.findProgramAddressSync(
+        [Buffer.from("bestlend_user_account"), user.toBuffer()],
+        program.programId
+    );
+
+    const remainingAccounts: AccountMeta[] = []
+    for (let i = 0; i < oracles.length; i++) {
+        const { address } = await getOrCreateAssociatedTokenAccount(
+            connection,
+            signer,
+            mints[i],
+            bestlendUserAccount,
+            true,
+        );
+        remainingAccounts.push({
+            pubkey: oracles[i],
+            isSigner: false,
+            isWritable: false
+        })
+        remainingAccounts.push({
+            pubkey: address,
+            isSigner: false,
+            isWritable: false
+        })
+    }
+
+    return remainingAccounts
+}
+
+export { lendingMarket, lendingMarketAuthority, reservePDAs, reserveAccounts, accountValueRemainingAccounts }

@@ -68,4 +68,6 @@ pub enum BestLendError {
     InvalidInstruction,
     #[msg("Invalid program ID on instruction")]
     UnapprovedProgramID,
+    #[msg("Missing obligation refresh")]
+    MissingObligationRefresh,
 }

@@ -2,16 +2,18 @@ use std::collections::HashSet;
 
 use crate::{instruction::PostAction, instruction::PreAction};
 use anchor_lang::{prelude::*, Discriminator};
+use kamino_lending::instruction::RefreshObligation;
 use rust_decimal::Decimal;
 use solana_program::{
     pubkey,
     sysvar::instructions::{load_current_index_checked, load_instruction_at_checked},
 };
 
+use super::KLEND_PROGRAM_ID;
 use crate::BestLendError;
 
 const APPROVED_ACTION_PROGRAM_IDS: [Pubkey; 2] = [
-    pubkey!("HUHJsverovPJN3sVtv8J8D48fKzeajRtz3Ga4Zmh4RLA"), // klend
+    KLEND_PROGRAM_ID,                                        // klend
     pubkey!("FFCs7PxV93BsPUNQhspKkggWArSxo2Hhas4PU4xhBmh6"), // dummy swap
 ];
 
@@ -20,6 +22,27 @@ pub fn action_introspection_checks(instruction_sysvar_account_info: &AccountInfo
     let current_index = load_current_index_checked(&ixs)? as usize;
 
     let approved_actions = HashSet::from(APPROVED_ACTION_PROGRAM_IDS);
+
+    if current_index == 0 {
+        return err!(BestLendError::MissingObligationRefresh);
+    }
+
+    // previous ix is an obligation refresh
+    if let Ok(ix) = load_instruction_at_checked(current_index - 1, &ixs) {
+        if ix.program_id != KLEND_PROGRAM_ID {
+            return err!(BestLendError::MissingObligationRefresh);
+        }
+
+        let ix_discriminator: [u8; 8] = ix.data[0..8]
+            .try_into()
+            .map_err(|_| BestLendError::MissingObligationRefresh)?;
+
+        if ix_discriminator != RefreshObligation::DISCRIMINATOR {
+            return err!(BestLendError::MissingObligationRefresh);
+        }
+    } else {
+        return err!(BestLendError::MissingObligationRefresh);
+    }
 
     let mut index = current_index + 1;
     loop {
@@ -75,4 +98,9 @@ pub fn min_value_from_pre_action(instruction_sysvar_account_info: &AccountInfo) 
 
         index -= 1;
     }
+}
+
+pub fn has_pre_action(instruction_sysvar_account_info: &AccountInfo) -> Result<()> {
+    min_value_from_pre_action(instruction_sysvar_account_info)?;
+    Ok(())
 }
