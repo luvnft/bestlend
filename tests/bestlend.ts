@@ -10,6 +10,8 @@ import { lendingMarket, lendingMarketAuthority, reserveAccounts, reservePDAs, us
 import { getReserveConfig } from "./configs";
 import { airdrop, keyPairFromB58, mintToken } from "./utils";
 import { PROGRAM_ID as KLEND_PROGRAM_ID, createRefreshObligationInstruction, createRefreshReserveInstruction } from "../clients/klend/src";
+import { KaminoMarket, VanillaObligation } from "@hubbleprotocol/kamino-lending-sdk";
+import { assert } from "chai";
 
 const ASSETS = [
   "USDC", "USDT", "SOL", "JitoSOL", "mSOL", "bSOL"
@@ -367,7 +369,7 @@ describe("bestlend", () => {
 
       tx.add(
         await program.methods
-          .klendBorrow(new BN(1e6))
+          .klendBorrow(new BN(1e8))
           .accounts({
             signer: user.publicKey,
             bestlendUserAccount,
@@ -448,6 +450,54 @@ describe("bestlend", () => {
       );
 
       await sendAndConfirmTransaction(connection, tx, [user], { skipPreflight: true });
+    })
+
+    it("validate LTV", async () => {
+      const user = users[0]
+      const reserveKey = reserves[0]
+      const borrowReserveKey = reserves[1]
+
+      const tx = new Transaction()
+      const { obligation } = await reserveAccounts(connection, user, borrowReserveKey.publicKey);
+
+      for (let i = 0; i < 2; i++) {
+        tx.add(
+          createRefreshReserveInstruction({
+            reserve: reserves[i].publicKey,
+            lendingMarket: lendingMarket.publicKey,
+            pythOracle: oracles[i].publicKey,
+          })
+        );
+      }
+
+      tx.add(
+        createRefreshObligationInstruction({
+          lendingMarket: lendingMarket.publicKey,
+          obligation,
+          anchorRemainingAccounts: [
+            { pubkey: reserveKey.publicKey, isSigner: false, isWritable: false },
+            { pubkey: borrowReserveKey.publicKey, isSigner: false, isWritable: false },
+          ]
+        })
+      );
+
+      await sendAndConfirmTransaction(connection, tx, [user], { skipPreflight: true });
+
+      const market = await KaminoMarket.load(
+        connection,
+        lendingMarket.publicKey,
+        KLEND_PROGRAM_ID,
+      );
+
+      const obl = await market.getObligationByAddress(obligation);
+
+      const ltv = obl.loanToValue().toNumber()
+      assert.equal(ltv.toFixed(2), "0.02")
+
+      const depositValue = obl.getDepositedValue().toNumber()
+      const borrowValue = obl.getBorrowedMarketValue().toNumber()
+      assert.equal(depositValue.toFixed(2), "4899.02")
+      assert.equal(borrowValue.toFixed(2), "99.77")
     })
   });
 });
