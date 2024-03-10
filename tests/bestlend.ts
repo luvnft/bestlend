@@ -4,7 +4,7 @@ import { Bestlend } from "../target/types/bestlend";
 import { KaminoLending } from "../target/types/kamino_lending";
 import { MockPyth } from "../target/types/mock_pyth";
 import { DummySwap } from "../target/types/dummy_swap";
-import { PublicKey, Transaction, SystemProgram, sendAndConfirmTransaction, Keypair, AccountMeta } from "@solana/web3.js";
+import { PublicKey, Transaction, SystemProgram, sendAndConfirmTransaction, Keypair, AccountMeta, AddressLookupTableProgram, VersionedTransaction, TransactionMessage } from "@solana/web3.js";
 import { BN } from "bn.js";
 import { keys } from '../keys'
 import { accountValueRemainingAccounts, lendingMarket, lendingMarketAuthority, reserveAccounts, reservePDAs, userPDAs } from "./accounts";
@@ -43,6 +43,7 @@ describe("bestlend", () => {
   const oracles: Keypair[] = [];
   const users: Keypair[] = [];
   const performer = keyPairFromB58(keys.performer)
+  let lut: PublicKey
 
   before(async () => {
     for (let i = 0; i < numReserves; i++) {
@@ -510,6 +511,50 @@ describe("bestlend", () => {
       assert.equal(borrowValue.toFixed(2), "99.77")
     })
 
+    it("create LUT", async () => {
+      let latestBlockhash = await connection.getLatestBlockhash('finalized');
+      const recentSlot = await connection.getSlot("finalized");
+
+      const [lookupTableIx, lookupTableAddress] =
+        AddressLookupTableProgram.createLookupTable({
+          authority: users[0].publicKey,
+          payer: users[0].publicKey,
+          recentSlot: recentSlot,
+        });
+
+      lut = lookupTableAddress
+
+      const extendInstruction = AddressLookupTableProgram.extendLookupTable({
+        payer: users[0].publicKey,
+        authority: users[0].publicKey,
+        lookupTable: lookupTableAddress,
+        addresses: [
+          ...reserves.map(r => r.publicKey),
+          ...oracles.map(r => r.publicKey),
+        ],
+      });
+
+      for (const ix of [lookupTableIx, extendInstruction]) {
+        const msg = new TransactionMessage({
+          payerKey: users[0].publicKey,
+          recentBlockhash: latestBlockhash.blockhash,
+          instructions: [ix],
+        }).compileToV0Message()
+
+        const tx = new VersionedTransaction(msg);
+        tx.sign([users[0]])
+
+        const sig = await connection.sendTransaction(tx)
+        const confirmation = await connection.confirmTransaction({
+          signature: sig,
+          blockhash: latestBlockhash.blockhash,
+          lastValidBlockHeight: latestBlockhash.lastValidBlockHeight
+        })
+
+        assert.isTrue(!confirmation.value.err, `err: ${JSON.stringify(confirmation.value.err)}`)
+      }
+    })
+
     it("performer withdraw and deposit same", async () => {
       const {
         bestlendUserAccount,
@@ -523,7 +568,7 @@ describe("bestlend", () => {
         connection, performer, users[0].publicKey, mints, oracles.map(o => o.publicKey),
       )
 
-      const tx = new Transaction()
+      const ixs = []
 
       let refreshIxs = []
       for (let i = 0; i < 2; i++) {
@@ -547,12 +592,12 @@ describe("bestlend", () => {
         })
       );
 
-      tx.add(...refreshIxs)
+      ixs.push(...refreshIxs)
 
       /**
        * PRE ACTION
        */
-      tx.add(
+      ixs.push(
         await program.methods.preAction(new BN(479925), 2)
           .accounts({
             signer: performer.publicKey,
@@ -591,9 +636,9 @@ describe("bestlend", () => {
         })
       );
 
-      tx.add(...refreshIxs)
+      ixs.push(...refreshIxs)
 
-      tx.add(
+      ixs.push(
         await program.methods
           .klendWithdraw(new BN(1e8))
           .accounts({
@@ -639,12 +684,12 @@ describe("bestlend", () => {
         })
       );
 
-      tx.add(...refreshIxs)
+      ixs.push(...refreshIxs)
 
       /**
        * POST ACTION
        */
-      tx.add(
+      ixs.push(
         await program.methods.postAction()
           .accounts({
             signer: performer.publicKey,
@@ -658,7 +703,29 @@ describe("bestlend", () => {
           .instruction()
       )
 
-      await sendAndConfirmTransaction(connection, tx, [performer], { skipPreflight: true });
+      /**
+       * V0 tx with LUT
+       */
+      const lookupTableAccount = (await connection.getAddressLookupTable(lut)).value;
+      let latestBlockhash = await connection.getLatestBlockhash('finalized');
+
+      const msg = new TransactionMessage({
+        payerKey: performer.publicKey,
+        recentBlockhash: latestBlockhash.blockhash,
+        instructions: ixs,
+      }).compileToV0Message([lookupTableAccount])
+
+      const tx = new VersionedTransaction(msg);
+      tx.sign([performer])
+
+      const sig = await connection.sendTransaction(tx, { skipPreflight: true })
+      const confirmation = await connection.confirmTransaction({
+        signature: sig,
+        blockhash: latestBlockhash.blockhash,
+        lastValidBlockHeight: latestBlockhash.lastValidBlockHeight
+      })
+
+      assert.isTrue(!confirmation.value.err, `err: ${JSON.stringify(confirmation.value.err)}`)
     })
   });
 });
