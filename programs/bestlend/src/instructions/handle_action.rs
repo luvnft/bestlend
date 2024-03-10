@@ -53,6 +53,12 @@ pub fn post_action(ctx: Context<PostAction>) -> Result<()> {
 
     let min_value = min_value_from_pre_action(&ctx.accounts.instructions)?;
 
+    msg!(
+        "current value: {}, min expected value: {}",
+        current_value,
+        min_value
+    );
+
     // ensure current value is above min
     require!(
         current_value.ge(&min_value),

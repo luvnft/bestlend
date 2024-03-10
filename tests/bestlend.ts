@@ -7,12 +7,13 @@ import { DummySwap } from "../target/types/dummy_swap";
 import { PublicKey, Transaction, SystemProgram, sendAndConfirmTransaction, Keypair, AccountMeta, AddressLookupTableProgram, VersionedTransaction, TransactionMessage } from "@solana/web3.js";
 import { BN } from "bn.js";
 import { keys } from '../keys'
-import { accountValueRemainingAccounts, lendingMarket, lendingMarketAuthority, reserveAccounts, reservePDAs, userPDAs } from "./accounts";
+import { accountValueRemainingAccounts, lendingMarket, lendingMarketAuthority, reserveAccounts, reservePDAs, swapAccounts, userPDAs } from "./accounts";
 import { getReserveConfig } from "./configs";
 import { airdrop, keyPairFromB58, mintToken } from "./utils";
 import { PROGRAM_ID as KLEND_PROGRAM_ID, createRefreshObligationInstruction, createRefreshReserveInstruction } from "../clients/klend/src";
 import { KaminoMarket } from "@hubbleprotocol/kamino-lending-sdk";
 import { assert } from "chai";
+import { getAssociatedTokenAddressSync } from "@solana/spl-token";
 
 const ASSETS = [
   "USDC", "USDT", "SOL", "JitoSOL", "mSOL", "bSOL"
@@ -347,7 +348,7 @@ describe("bestlend", () => {
     it("borrow", async () => {
       const user = users[0]
       const reserveKey = reserves[0]
-      const borrowReserveKey = reserves[1]
+      const borrowReserveKey = reserves[3]
 
       const {
         bestlendUserAccount,
@@ -358,7 +359,7 @@ describe("bestlend", () => {
 
       const tx = new Transaction()
 
-      for (let i = 0; i < 2; i++) {
+      for (let i of [0, 3]) {
         tx.add(
           createRefreshReserveInstruction({
             reserve: reserves[i].publicKey,
@@ -380,7 +381,7 @@ describe("bestlend", () => {
 
       tx.add(
         await program.methods
-          .klendBorrow(new BN(1e8))
+          .klendBorrow(new BN(1e9))
           .accounts({
             signer: user.publicKey,
             bestlendUserAccount,
@@ -406,7 +407,8 @@ describe("bestlend", () => {
     it("repay", async () => {
       const user = users[0]
       const reserveKey = reserves[0]
-      const borrowReserveKey = reserves[1]
+      const borrowReserveKey = reserves[3]
+      const reservesIdxs = [0, 3]
 
       const {
         bestlendUserAccount,
@@ -418,7 +420,7 @@ describe("bestlend", () => {
 
       const tx = new Transaction()
 
-      for (let i = 0; i < 2; i++) {
+      for (let i of reservesIdxs) {
         tx.add(
           createRefreshReserveInstruction({
             reserve: reserves[i].publicKey,
@@ -466,12 +468,13 @@ describe("bestlend", () => {
     it("validate LTV", async () => {
       const user = users[0]
       const reserveKey = reserves[0]
-      const borrowReserveKey = reserves[1]
+      const borrowReserveKey = reserves[3]
+      const reservesIdxs = [0, 3]
 
       const tx = new Transaction()
       const { obligation } = await reserveAccounts(connection, user, borrowReserveKey.publicKey);
 
-      for (let i = 0; i < 2; i++) {
+      for (let i of reservesIdxs) {
         tx.add(
           createRefreshReserveInstruction({
             reserve: reserves[i].publicKey,
@@ -503,12 +506,12 @@ describe("bestlend", () => {
       const obl = await market.getObligationByAddress(obligation);
 
       const ltv = obl.loanToValue().toNumber()
-      assert.equal(ltv.toFixed(2), "0.02")
+      assert.equal(ltv.toFixed(3), "0.028")
 
       const depositValue = obl.getDepositedValue().toNumber()
       const borrowValue = obl.getBorrowedMarketValue().toNumber()
       assert.equal(depositValue.toFixed(2), "4899.02")
-      assert.equal(borrowValue.toFixed(2), "99.77")
+      assert.equal(borrowValue.toFixed(3), "137.200")
     })
 
     it("create LUT", async () => {
@@ -524,17 +527,65 @@ describe("bestlend", () => {
 
       lut = lookupTableAddress
 
-      const extendInstruction = AddressLookupTableProgram.extendLookupTable({
+      // all reserves and oracles
+      const addresses = [
+        ...reserves.map(r => r.publicKey),
+        ...oracles.map(r => r.publicKey),
+      ]
+
+      // program ids
+      addresses.push(
+        program.programId,
+        klend.programId,
+        dummySwap.programId,
+        lendingMarket.publicKey,
+        lendingMarketAuthority,
+        new PublicKey(
+          "Sysvar1nstructions1111111111111111111111111"
+        ),
+      )
+
+      const [bestlendUserAccount] = PublicKey.findProgramAddressSync(
+        [Buffer.from("bestlend_user_account"), users[0].publicKey.toBuffer()],
+        program.programId
+      );
+      addresses.push(bestlendUserAccount)
+
+      // performer and user atas
+      for (let mint of mints) {
+        addresses.push(getAssociatedTokenAddressSync(mint, performer.publicKey))
+        addresses.push(getAssociatedTokenAddressSync(mint, users[0].publicKey))
+
+        // reserve PDAs
+        const {
+          feeReceiver,
+          reserveLiquiditySupply,
+          reserveCollateralMint,
+          reserveCollateralSupply,
+        } = reservePDAs(mint)
+
+        addresses.push(
+          feeReceiver,
+          reserveLiquiditySupply,
+          reserveCollateralMint,
+          reserveCollateralSupply,
+        )
+      }
+
+      const extendInstructionA = AddressLookupTableProgram.extendLookupTable({
         payer: users[0].publicKey,
         authority: users[0].publicKey,
         lookupTable: lookupTableAddress,
-        addresses: [
-          ...reserves.map(r => r.publicKey),
-          ...oracles.map(r => r.publicKey),
-        ],
+        addresses: addresses.slice(0, 30),
+      });
+      const extendInstructionB = AddressLookupTableProgram.extendLookupTable({
+        payer: users[0].publicKey,
+        authority: users[0].publicKey,
+        lookupTable: lookupTableAddress,
+        addresses: addresses.slice(30),
       });
 
-      for (const ix of [lookupTableIx, extendInstruction]) {
+      for (const ix of [lookupTableIx, extendInstructionA, extendInstructionB]) {
         const msg = new TransactionMessage({
           payerKey: users[0].publicKey,
           recentBlockhash: latestBlockhash.blockhash,
@@ -571,7 +622,7 @@ describe("bestlend", () => {
       const ixs = []
 
       let refreshIxs = []
-      for (let i = 0; i < 2; i++) {
+      for (let i of [0, 3]) {
         refreshIxs.push(
           createRefreshReserveInstruction({
             reserve: reserves[i].publicKey,
@@ -587,7 +638,7 @@ describe("bestlend", () => {
           obligation,
           anchorRemainingAccounts: [
             { pubkey: reserves[0].publicKey, isSigner: false, isWritable: false },
-            { pubkey: reserves[1].publicKey, isSigner: false, isWritable: false },
+            { pubkey: reserves[3].publicKey, isSigner: false, isWritable: false },
           ]
         })
       );
@@ -598,7 +649,7 @@ describe("bestlend", () => {
        * PRE ACTION
        */
       ixs.push(
-        await program.methods.preAction(new BN(479925), 2)
+        await program.methods.preAction(new BN(475800), 2)
           .accounts({
             signer: performer.publicKey,
             bestlendUserAccount,
@@ -615,7 +666,7 @@ describe("bestlend", () => {
        * REBALANCE
        */
       refreshIxs = []
-      for (let i = 1; i >= 0; i--) {
+      for (let i of [3, 0]) {
         refreshIxs.push(
           createRefreshReserveInstruction({
             reserve: reserves[i].publicKey,
@@ -631,7 +682,7 @@ describe("bestlend", () => {
           obligation,
           anchorRemainingAccounts: [
             { pubkey: reserves[0].publicKey, isSigner: false, isWritable: false },
-            { pubkey: reserves[1].publicKey, isSigner: false, isWritable: false },
+            { pubkey: reserves[3].publicKey, isSigner: false, isWritable: false },
           ]
         })
       );
@@ -662,8 +713,83 @@ describe("bestlend", () => {
           .instruction()
       );
 
+      const {
+        tokenPDA,
+        inputATA,
+        outputATA,
+        pdaInputATA,
+        pdaOutputATA,
+      } = await swapAccounts(connection, mints[0], mints[1], performer)
+
+      ixs.push(
+        await dummySwap.methods.swap(new BN(1e8), new BN(1.003e8))
+          .accounts({
+            swapper: performer.publicKey,
+            swapperInputToken: inputATA,
+            swapperOutputToken: outputATA,
+            tokenHolderPda: tokenPDA,
+            pdaInputToken: pdaInputATA,
+            pdaOutputToken: pdaOutputATA,
+          }).instruction()
+      )
+
       refreshIxs = []
-      for (let i = 1; i >= 0; i--) {
+      for (let i of [3, 0, 1]) {
+        refreshIxs.push(
+          createRefreshReserveInstruction({
+            reserve: reserves[i].publicKey,
+            lendingMarket: lendingMarket.publicKey,
+            pythOracle: oracles[i].publicKey,
+          })
+        );
+      }
+
+      refreshIxs.push(
+        createRefreshObligationInstruction({
+          lendingMarket: lendingMarket.publicKey,
+          obligation,
+          anchorRemainingAccounts: [
+            { pubkey: reserves[0].publicKey, isSigner: false, isWritable: false },
+            { pubkey: reserves[3].publicKey, isSigner: false, isWritable: false },
+          ]
+        })
+      );
+
+      ixs.push(...refreshIxs)
+
+      const {
+        reserve: reserveOther,
+        collateralAta: collateralAtaOther,
+        liquidityAta,
+      } = await reserveAccounts(connection, users[0], reserves[1].publicKey, performer);
+
+      ixs.push(
+        await program.methods
+          .klendDeposit(new BN(1e8))
+          .accounts({
+            signer: performer.publicKey,
+            bestlendUserAccount,
+            obligation,
+            klendProgram: KLEND_PROGRAM_ID,
+            lendingMarket: lendingMarket.publicKey,
+            lendingMarketAuthority,
+            reserve: reserves[1].publicKey,
+            reserveLiquiditySupply: reserveOther.liquidity.supplyVault,
+            reserveCollateralMint: reserveOther.collateral.mintPubkey,
+            reserveDestinationDepositCollateral:
+              reserveOther.collateral.supplyVault,
+            userSourceLiquidity: outputATA,
+            bestlendUserSourceLiquidity: liquidityAta.address,
+            userDestinationCollateral: collateralAtaOther.address,
+            instructionSysvarAccount: new PublicKey(
+              "Sysvar1nstructions1111111111111111111111111"
+            ),
+          })
+          .instruction()
+      );
+
+      refreshIxs = []
+      for (let i of [0, 1, 3]) {
         refreshIxs.push(
           createRefreshReserveInstruction({
             reserve: reserves[i].publicKey,
@@ -680,6 +806,7 @@ describe("bestlend", () => {
           anchorRemainingAccounts: [
             { pubkey: reserves[0].publicKey, isSigner: false, isWritable: false },
             { pubkey: reserves[1].publicKey, isSigner: false, isWritable: false },
+            { pubkey: reserves[3].publicKey, isSigner: false, isWritable: false },
           ]
         })
       );

@@ -7,9 +7,11 @@ import { keyPairFromB58 } from "./utils";
 import { Bestlend } from "../target/types/bestlend";
 import { getOrCreateAssociatedTokenAccount } from "@solana/spl-token";
 import { Reserve } from "../clients/klend/src";
+import { DummySwap } from "../target/types/dummy_swap";
 
 const program = anchor.workspace.Bestlend as Program<Bestlend>;
 const klend = anchor.workspace.KaminoLending as Program<KaminoLending>;
+const dummySwap = anchor.workspace.DummySwap as Program<DummySwap>;
 const lendingMarket = keyPairFromB58(keys.lendingMarket)
 
 const [lendingMarketAuthority] = PublicKey.findProgramAddressSync(
@@ -169,4 +171,46 @@ const accountValueRemainingAccounts = async (connection: Connection, signer: Sig
     return remainingAccounts
 }
 
-export { lendingMarket, lendingMarketAuthority, reservePDAs, reserveAccounts, accountValueRemainingAccounts }
+const swapAccounts = async (connection: Connection, inputMint: PublicKey, outputMint: PublicKey, user: Keypair) => {
+    const [tokenPDA] = PublicKey.findProgramAddressSync(
+        [Buffer.from("token_holder")],
+        dummySwap.programId
+    );
+    const { address: inputATA } = await getOrCreateAssociatedTokenAccount(
+        connection,
+        user,
+        inputMint,
+        user.publicKey,
+        true,
+    );
+    const { address: outputATA } = await getOrCreateAssociatedTokenAccount(
+        connection,
+        user,
+        outputMint,
+        user.publicKey,
+        true,
+    );
+    const { address: pdaInputATA } = await getOrCreateAssociatedTokenAccount(
+        connection,
+        user,
+        inputMint,
+        tokenPDA,
+        true,
+    );
+    const { address: pdaOutputATA } = await getOrCreateAssociatedTokenAccount(
+        connection,
+        user,
+        outputMint,
+        tokenPDA,
+        true,
+    );
+    return {
+        tokenPDA,
+        inputATA,
+        outputATA,
+        pdaInputATA,
+        pdaOutputATA,
+    }
+}
+
+export { lendingMarket, lendingMarketAuthority, reservePDAs, reserveAccounts, accountValueRemainingAccounts, swapAccounts }

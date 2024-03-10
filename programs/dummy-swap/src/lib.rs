@@ -42,17 +42,24 @@ pub mod dummy_swap {
                     to: swapper_output_token.to_account_info(),
                     authority: token_holder_pda.to_account_info(),
                 },
-                &[&[b"token_holder", &[*ctx.bumps.get("token_holder").unwrap()]]],
+                &[&[
+                    b"token_holder",
+                    &[*ctx.bumps.get("token_holder_pda").unwrap()],
+                ]],
             ),
             output_amout,
         )?;
+
+        ctx.accounts.token_holder_pda.swap_count += 1;
 
         Ok(())
     }
 }
 
 #[account]
-pub struct TokenHolder {}
+pub struct TokenHolder {
+    swap_count: u64,
+}
 
 #[derive(Accounts)]
 pub struct Swap<'info> {
@@ -66,7 +73,7 @@ pub struct Swap<'info> {
         init_if_needed,
         payer = swapper,
         seeds = [b"token_holder"],
-        space = 8,
+        space = 8 + 8,
         bump,
     )]
     pub token_holder_pda: Account<'info, TokenHolder>,
