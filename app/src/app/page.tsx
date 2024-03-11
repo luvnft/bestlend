@@ -1,3 +1,4 @@
+import NavBar from "@/components/navbar";
 import Reserve from "@/components/reserve";
 import { LSTS, STABLES } from "@/utils/consts";
 import { Asset, LendingMarket } from "@/utils/models";
@@ -9,7 +10,6 @@ import {
   Heading,
   Stack,
   StackDivider,
-  VStack,
 } from "@chakra-ui/react";
 
 const groups: [string, Asset[]][] = [
@@ -20,6 +20,7 @@ const groups: [string, Asset[]][] = [
 export default function Home() {
   return (
     <main>
+      <NavBar />
       <Stack p="1rem" spacing="1rem">
         {groups.map(([group, assets]) => (
           <Card>
@@ -27,7 +28,10 @@ export default function Home() {
               <CardHeader>
                 <Heading size="md">{group}</Heading>
               </CardHeader>
-              <Stack spacing="1rem" divider={<StackDivider />}>
+              <Stack
+                spacing="1rem"
+                divider={<StackDivider borderColor="owalaOrange" />}
+              >
                 {assets.map((s) => (
                   <Reserve asset={s} lendingMarket={LendingMarket.KAMINO} />
                 ))}
