@@ -43,7 +43,7 @@ export const useGetTokenBalances = (): {
   );
 
   // attach internal data and combine SOL balance
-  const tokenBalances: TokenBalance[] = [
+  const allTokenBalances: TokenBalance[] = [
     ...(query.data?.map((entry) => ({
       ...entry,
       internal: ASSETS[entry.info.symbol],
@@ -62,6 +62,9 @@ export const useGetTokenBalances = (): {
       isNative: true,
     },
   ];
+
+  // filter out assets that aren't supported
+  const tokenBalances = allTokenBalances.filter((b) => !!b.internal);
 
   return {
     isLoading: query.isLoading || querySOL.isLoading,
