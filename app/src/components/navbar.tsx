@@ -1,5 +1,6 @@
-import { Box, HStack } from "@chakra-ui/react";
+import { Box, HStack, Spacer } from "@chakra-ui/react";
 import { Audiowide } from "next/font/google";
+import Wallet from "./wallet";
 
 const font = Audiowide({ weight: "400", subsets: ["latin"] });
 
@@ -9,6 +10,8 @@ const NavBar = () => {
       <Box fontSize="3xl" fontWeight="bold" className={font.className}>
         BESTLEND
       </Box>
+      <Spacer />
+      <Wallet />
     </HStack>
   );
 };

@@ -30,7 +30,9 @@ export default function Home() {
               </CardHeader>
               <Stack
                 spacing="1rem"
-                divider={<StackDivider borderColor="owalaOrange" />}
+                divider={
+                  <StackDivider borderColor="owalaOrange" borderWidth="2px" />
+                }
               >
                 {assets.map((s) => (
                   <Reserve asset={s} lendingMarket={LendingMarket.KAMINO} />

@@ -3,9 +3,18 @@
 import {
   ChakraProvider,
   createMultiStyleConfigHelpers,
+  defineStyle,
+  defineStyleConfig,
 } from "@chakra-ui/react";
 import { extendTheme, type ThemeConfig } from "@chakra-ui/react";
 import { cardAnatomy } from "@chakra-ui/anatomy";
+import { WalletAdapterNetwork } from "@solana/wallet-adapter-base";
+import { clusterApiUrl } from "@solana/web3.js";
+import {
+  ConnectionProvider,
+  WalletProvider,
+} from "@solana/wallet-adapter-react";
+import { QueryClient, QueryClientProvider } from "react-query";
 
 const { definePartsStyle, defineMultiStyleConfig } =
   createMultiStyleConfigHelpers(cardAnatomy.keys);
@@ -31,18 +40,55 @@ const styles = {
   },
 };
 
-const baseStyle = definePartsStyle({
+const baseCardStyle = definePartsStyle({
   container: {
     backgroundColor: "owalaBeige",
   },
 });
 
+const baseModalStyle = definePartsStyle({
+  // @ts-ignore
+  overlay: {
+    bg: "rgba(46, 41, 37, 0.9)",
+  },
+  dialog: {
+    bg: "owalaGreen",
+    w: "50%",
+  },
+});
+
 const components = {
-  Card: defineMultiStyleConfig({ baseStyle }),
+  Card: defineMultiStyleConfig({ baseStyle: baseCardStyle }),
+  Button: defineStyleConfig({
+    variants: {
+      solid: defineStyle({
+        bg: "orange",
+      }),
+      outline: defineStyle({
+        borderColor: "orange",
+        bg: "owalaBeige",
+      }),
+    },
+  }),
+  Modal: defineMultiStyleConfig({ baseStyle: baseModalStyle }),
 };
 
 const theme = extendTheme({ config, colors, styles, components });
 
+const queryClient = new QueryClient({
+  defaultOptions: { queries: { retry: 2 } },
+});
+
 export function Providers({ children }: { children: React.ReactNode }) {
-  return <ChakraProvider theme={theme}>{children}</ChakraProvider>;
+  const endpoint = clusterApiUrl(WalletAdapterNetwork.Devnet);
+
+  return (
+    <QueryClientProvider client={queryClient}>
+      <ChakraProvider theme={theme}>
+        <ConnectionProvider endpoint={endpoint}>
+          <WalletProvider wallets={[]}>{children}</WalletProvider>
+        </ConnectionProvider>
+      </ChakraProvider>
+    </QueryClientProvider>
+  );
 }
