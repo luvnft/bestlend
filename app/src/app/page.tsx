@@ -1,3 +1,4 @@
+import InitAccount from "@/components/initAccount";
 import NavBar from "@/components/navbar";
 import Reserve from "@/components/reserve";
 import { LSTS, STABLES } from "@/utils/consts";
@@ -19,11 +20,12 @@ const groups: [string, Asset[]][] = [
 
 export default function Home() {
   return (
-    <main>
+    <Box>
       <NavBar />
       <Stack p="1rem" spacing="1rem">
+        <InitAccount />
         {groups.map(([group, assets]) => (
-          <Card>
+          <Card key={group}>
             <CardBody>
               <CardHeader>
                 <Heading size="md">{group}</Heading>
@@ -42,6 +44,6 @@ export default function Home() {
           </Card>
         ))}
       </Stack>
-    </main>
+    </Box>
   );
 }

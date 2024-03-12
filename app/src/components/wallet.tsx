@@ -53,8 +53,7 @@ const Wallet = () => {
               <Image
                 src={wallet.adapter.icon}
                 alt={wallet.adapter.name}
-                h={6}
-                w={6}
+                boxSize={6}
               />
             }
             variant="outline"
@@ -98,7 +97,7 @@ const Wallet = () => {
   return (
     <>
       {!publicKey ? (
-        <Button onClick={!!selectedWallet ? connect : onOpen}>
+        <Button onClick={!!selectedWallet ? connect : onOpen} w="140px">
           Connect Wallet
         </Button>
       ) : (

@@ -29,6 +29,7 @@ const colors = {
   owalaGreen: "rgba(169, 181, 145)",
   owalaBrown: "rgba(46, 41, 37)",
   owalaBeige: "rgba(238, 223, 187)",
+  owalaBeigeLight: "#f3e9cf",
 };
 
 const styles = {
@@ -57,12 +58,24 @@ const baseModalStyle = definePartsStyle({
   },
 });
 
+const baseInputStyle = definePartsStyle({
+  // @ts-ignore
+  field: {
+    bg: "owalaBeigeLight",
+    p: "8px",
+    borderRadius: "5px",
+  },
+});
+
 const components = {
   Card: defineMultiStyleConfig({ baseStyle: baseCardStyle }),
   Button: defineStyleConfig({
     variants: {
       solid: defineStyle({
         bg: "orange",
+        _hover: {
+          bg: "owalaBeigeLight",
+        },
       }),
       outline: defineStyle({
         borderColor: "orange",
@@ -71,6 +84,7 @@ const components = {
     },
   }),
   Modal: defineMultiStyleConfig({ baseStyle: baseModalStyle }),
+  NumberInput: defineMultiStyleConfig({ baseStyle: baseInputStyle }),
 };
 
 const theme = extendTheme({ config, colors, styles, components });
@@ -80,7 +94,8 @@ const queryClient = new QueryClient({
 });
 
 export function Providers({ children }: { children: React.ReactNode }) {
-  const endpoint = clusterApiUrl(WalletAdapterNetwork.Devnet);
+  const endpoint =
+    process.env.NEXT_PUBLIC_RPC ?? clusterApiUrl(WalletAdapterNetwork.Devnet);
 
   return (
     <QueryClientProvider client={queryClient}>
