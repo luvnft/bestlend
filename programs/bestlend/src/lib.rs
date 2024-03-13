@@ -16,8 +16,9 @@ pub mod bestlend {
         ctx: Context<InitAccount>,
         collateral_group: u8,
         debt_group: u8,
+        lookup_table: Pubkey,
     ) -> Result<()> {
-        handle_init_account::init_account(ctx, collateral_group, debt_group)
+        handle_init_account::init_account(ctx, collateral_group, debt_group, lookup_table)
     }
 
     pub fn pre_action(

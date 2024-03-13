@@ -21,10 +21,11 @@ pub struct BestLendUserAccount {
     pub black_listed_assets: [Pubkey; 5],
     pub price_impact_bps: u8,
     pub last_account_value: Price,
+    pub lookup_table: Pubkey,
 }
 
 impl BestLendUserAccount {
-    pub const LEN: usize = 248 + 8;
+    pub const LEN: usize = 280 + 8;
     pub const DEFAULT_PI_BPS: u8 = 10;
 }
 

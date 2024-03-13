@@ -10,7 +10,12 @@ use kamino_lending::{
     InitObligationArgs,
 };
 
-pub fn init_account(ctx: Context<InitAccount>, collateral_group: u8, debt_group: u8) -> Result<()> {
+pub fn init_account(
+    ctx: Context<InitAccount>,
+    collateral_group: u8,
+    debt_group: u8,
+    lookup_table: Pubkey,
+) -> Result<()> {
     let collateral =
         AssetGroup::try_from(collateral_group).map_err(|_| ProgramError::InvalidInstructionData)?;
     let debt =
@@ -23,6 +28,7 @@ pub fn init_account(ctx: Context<InitAccount>, collateral_group: u8, debt_group:
     ctx.accounts.bestlend_user_account.price_impact_bps = BestLendUserAccount::DEFAULT_PI_BPS;
     ctx.accounts.bestlend_user_account.collateral_group = collateral.into();
     ctx.accounts.bestlend_user_account.debt_group = debt.into();
+    ctx.accounts.bestlend_user_account.lookup_table = lookup_table;
 
     Ok(())
 }
