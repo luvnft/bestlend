@@ -1,0 +1,8 @@
+{
+    "name": "dummy-swap",
+    "version": "1.0.0",
+    "main": "index.js",
+    "devDependencies": {
+        "@metaplex-foundation/solita": "^0.20.1"
+    }
+}

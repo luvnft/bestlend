@@ -9,6 +9,7 @@
     "devDependencies": {
         "@hubbleprotocol/kamino-lending-sdk": "2.8.56",
         "@metaplex-foundation/beet": "^0.7.2",
+        "@shyft-to/js": "^0.2.36",
         "@solana/spl-token": "^0.4.1",
         "@types/bn.js": "^5.1.0",
         "@types/chai": "^4.3.0",

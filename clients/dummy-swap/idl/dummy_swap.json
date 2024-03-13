@@ -1,0 +1,81 @@
+{
+  "version": "0.1.0",
+  "name": "dummy_swap",
+  "instructions": [
+    {
+      "name": "swap",
+      "accounts": [
+        {
+          "name": "swapper",
+          "isMut": true,
+          "isSigner": true
+        },
+        {
+          "name": "swapperInputToken",
+          "isMut": true,
+          "isSigner": false
+        },
+        {
+          "name": "swapperOutputToken",
+          "isMut": true,
+          "isSigner": false
+        },
+        {
+          "name": "tokenHolderPda",
+          "isMut": true,
+          "isSigner": false
+        },
+        {
+          "name": "pdaInputToken",
+          "isMut": true,
+          "isSigner": false
+        },
+        {
+          "name": "pdaOutputToken",
+          "isMut": true,
+          "isSigner": false
+        },
+        {
+          "name": "tokenProgram",
+          "isMut": false,
+          "isSigner": false
+        },
+        {
+          "name": "systemProgram",
+          "isMut": false,
+          "isSigner": false
+        }
+      ],
+      "args": [
+        {
+          "name": "inputAmout",
+          "type": "u64"
+        },
+        {
+          "name": "outputAmout",
+          "type": "u64"
+        }
+      ]
+    }
+  ],
+  "accounts": [
+    {
+      "name": "TokenHolder",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "swapCount",
+            "type": "u64"
+          }
+        ]
+      }
+    }
+  ],
+  "metadata": {
+    "address": "FFCs7PxV93BsPUNQhspKkggWArSxo2Hhas4PU4xhBmh6",
+    "origin": "anchor",
+    "binaryVersion": "0.28.0",
+    "libVersion": "0.28.0"
+  }
+}

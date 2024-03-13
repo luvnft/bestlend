@@ -1,0 +1,62 @@
+{
+  "version": "0.1.0",
+  "name": "mock_pyth",
+  "instructions": [
+    {
+      "name": "writePythPrice",
+      "accounts": [
+        {
+          "name": "signer",
+          "isMut": true,
+          "isSigner": true
+        },
+        {
+          "name": "target",
+          "isMut": true,
+          "isSigner": true
+        },
+        {
+          "name": "systemProgram",
+          "isMut": false,
+          "isSigner": false
+        }
+      ],
+      "args": [
+        {
+          "name": "price",
+          "type": "i64"
+        },
+        {
+          "name": "expo",
+          "type": "i32"
+        },
+        {
+          "name": "slot",
+          "type": "i64"
+        },
+        {
+          "name": "timestampSec",
+          "type": "i64"
+        }
+      ]
+    }
+  ],
+  "errors": [
+    {
+      "code": 6000,
+      "name": "BadAccountData",
+      "msg": "Existing account data cannot be parsed"
+    },
+    {
+      "code": 6001,
+      "name": "InvalidAccountData",
+      "msg": "The pyth account could not be parsed"
+    }
+  ],
+  "metadata": {
+    "address": "6Lh68KvhjwFGUENYh97S5BdLubB91bEcgKc2BuU2M13q",
+    "origin": "anchor",
+    "binaryVersion": "0.28.0",
+    "libVersion": "0.28.0"
+  }
+}
