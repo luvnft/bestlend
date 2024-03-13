@@ -4,23 +4,41 @@ import { Bestlend } from "../target/types/bestlend";
 import { KaminoLending } from "../target/types/kamino_lending";
 import { MockPyth } from "../target/types/mock_pyth";
 import { DummySwap } from "../target/types/dummy_swap";
-import { PublicKey, Transaction, SystemProgram, sendAndConfirmTransaction, Keypair, AccountMeta, AddressLookupTableProgram, VersionedTransaction, TransactionMessage } from "@solana/web3.js";
+import {
+  PublicKey,
+  Transaction,
+  SystemProgram,
+  sendAndConfirmTransaction,
+  Keypair,
+  AccountMeta,
+  AddressLookupTableProgram,
+  VersionedTransaction,
+  TransactionMessage,
+} from "@solana/web3.js";
 import { BN } from "bn.js";
-import { keys } from '../keys'
-import { accountValueRemainingAccounts, lendingMarket, lendingMarketAuthority, reserveAccounts, reservePDAs, swapAccounts, userPDAs } from "./accounts";
+import { keys } from "../keys";
+import {
+  accountValueRemainingAccounts,
+  lendingMarket,
+  lendingMarketAuthority,
+  reserveAccounts,
+  reservePDAs,
+  swapAccounts,
+  userPDAs,
+} from "./accounts";
 import { getReserveConfig } from "./configs";
 import { airdrop, keyPairFromB58, mintToken } from "./utils";
-import { PROGRAM_ID as KLEND_PROGRAM_ID, createRefreshObligationInstruction, createRefreshReserveInstruction } from "../clients/klend/src";
+import {
+  PROGRAM_ID as KLEND_PROGRAM_ID,
+  createRefreshObligationInstruction,
+  createRefreshReserveInstruction,
+} from "../clients/klend/src";
 import { KaminoMarket } from "@hubbleprotocol/kamino-lending-sdk";
 import { assert } from "chai";
 import { getAssociatedTokenAddressSync } from "@solana/spl-token";
 
-const ASSETS = [
-  "USDC", "USDT", "SOL", "JitoSOL", "mSOL", "bSOL"
-]
-const PRICES = [
-  9998, 9977, 1267000, 1372000, 1471000, 1403000
-]
+const ASSETS = ["USDC", "USDT", "SOL", "JitoSOL", "mSOL", "bSOL"];
+const PRICES = [9998, 9977, 1267000, 1372000, 1471000, 1403000];
 
 describe("bestlend", () => {
   const provider = anchor.AnchorProvider.env();
@@ -43,8 +61,8 @@ describe("bestlend", () => {
   const reserves: Keypair[] = [];
   const oracles: Keypair[] = [];
   const users: Keypair[] = [];
-  const performer = keyPairFromB58(keys.performer)
-  let lut: PublicKey
+  const performer = keyPairFromB58(keys.performer);
+  let luts: PublicKey[] = [];
 
   before(async () => {
     for (let i = 0; i < numReserves; i++) {
@@ -53,7 +71,15 @@ describe("bestlend", () => {
       users.push(Keypair.generate());
 
       await airdrop(provider, users[i].publicKey);
-      mints.push(await mintToken(connection, users[i], ASSETS[i], keyPairFromB58(keys.mints[ASSETS[i]]), [dummySwapPDA]));
+      mints.push(
+        await mintToken(
+          connection,
+          users[i],
+          ASSETS[i],
+          keyPairFromB58(keys.mints[ASSETS[i]]),
+          [dummySwapPDA]
+        )
+      );
     }
 
     await airdrop(provider, performer.publicKey);
@@ -61,15 +87,20 @@ describe("bestlend", () => {
 
   describe("setup klend fork", async () => {
     it("updateOraclePrice", async () => {
-      const promises = []
+      const promises = [];
       for (let i = 0; i < numReserves; i++) {
-        promises.push(oracleProgram.methods
-          .writePythPrice(new BN(PRICES[i]), -4, new BN(1), new BN(1))
-          .accounts({ target: oracles[i].publicKey, signer: signer.publicKey })
-          .signers([signer.payer, oracles[i]])
-          .rpc());
+        promises.push(
+          oracleProgram.methods
+            .writePythPrice(new BN(PRICES[i]), -4, new BN(1), new BN(1))
+            .accounts({
+              target: oracles[i].publicKey,
+              signer: signer.publicKey,
+            })
+            .signers([signer.payer, oracles[i]])
+            .rpc()
+        );
       }
-      await Promise.all(promises)
+      await Promise.all(promises);
     });
 
     it("initLendingMarket", async () => {
@@ -77,7 +108,9 @@ describe("bestlend", () => {
       Buffer.from("USD").forEach((b, i) => (quoteCurrency[i] = b));
 
       const size = 4656 + 8;
-      const minBalance = await connection.getMinimumBalanceForRentExemption(size);
+      const minBalance = await connection.getMinimumBalanceForRentExemption(
+        size
+      );
       const createMarketAccountTx = SystemProgram.createAccount({
         fromPubkey: signer.publicKey,
         newAccountPubkey: lendingMarket.publicKey,
@@ -108,7 +141,7 @@ describe("bestlend", () => {
         size
       );
 
-      const promises = []
+      const promises = [];
       for (let i = 0; i < numReserves; i++) {
         const mint = mints[i];
         const reserve = reserves[i];
@@ -118,7 +151,7 @@ describe("bestlend", () => {
           reserveLiquiditySupply,
           reserveCollateralMint,
           reserveCollateralSupply,
-        } = reservePDAs(mint)
+        } = reservePDAs(mint);
 
         const createReserveAccountTx = SystemProgram.createAccount({
           fromPubkey: signer.publicKey,
@@ -149,17 +182,22 @@ describe("bestlend", () => {
               reserveCollateralSupply,
             })
             .rpc();
-        }
-        promises.push(send())
+        };
+        promises.push(send());
       }
-      await Promise.all(promises)
+      await Promise.all(promises);
     });
 
     it("updateReserveConfigs", async () => {
-      const promises = []
+      const promises = [];
       for (let i = 0; i < numReserves; i++) {
         const reserve = reserves[i];
-        const configBytes = getReserveConfig(oracles[i].publicKey, ASSETS[i], PRICES[i], 4)
+        const configBytes = getReserveConfig(
+          oracles[i].publicKey,
+          ASSETS[i],
+          PRICES[i],
+          4
+        );
 
         promises.push(
           klend.methods
@@ -172,24 +210,44 @@ describe("bestlend", () => {
             .rpc()
         );
       }
-      await Promise.all(promises)
+      await Promise.all(promises);
     });
-  })
+  });
 
   describe("bestlend", async () => {
     it("init account", async () => {
-      const promises = []
+      const promises = [];
       for (let i = 0; i < users.length; i++) {
-        const user = users[i]
+        const user = users[i];
 
-        const {
-          bestlendUserAccount,
-          userMetadata,
-          obligation
-        } = userPDAs(user.publicKey)
+        const { bestlendUserAccount, userMetadata, obligation } = userPDAs(
+          user.publicKey
+        );
+
+        const recentSlot = await connection.getSlot("finalized");
+
+        const [lookupTableIx, lookupTableAddress] =
+          AddressLookupTableProgram.createLookupTable({
+            authority: users[i].publicKey,
+            payer: users[i].publicKey,
+            recentSlot: recentSlot,
+          });
+
+        luts.push(lookupTableAddress);
 
         const send = async () => {
-          await program.methods.initAccount(0, 1)
+          try {
+            await sendAndConfirmTransaction(
+              connection,
+              new Transaction().add(lookupTableIx),
+              [user]
+            );
+          } catch (e) {
+            console.log("ERROR CREATING TABLE: ", e);
+          }
+
+          await program.methods
+            .initAccount(0, 1, lookupTableAddress)
             .accounts({
               owner: user.publicKey,
               bestlendUserAccount,
@@ -197,7 +255,8 @@ describe("bestlend", () => {
             .signers([user])
             .rpc();
 
-          await program.methods.initKlendAccount()
+          await program.methods
+            .initKlendAccount()
             .accounts({
               owner: user.publicKey,
               bestlendUserAccount,
@@ -206,24 +265,24 @@ describe("bestlend", () => {
               seed1Account: PublicKey.default,
               seed2Account: PublicKey.default,
               userMetadata: userMetadata,
-              klendProgram: KLEND_PROGRAM_ID
+              klendProgram: KLEND_PROGRAM_ID,
             })
             .signers([user])
             .rpc();
-        }
-        promises.push(send())
+        };
+        promises.push(send());
       }
-      await Promise.all(promises)
+      await Promise.all(promises);
     });
 
     it("deposit every asset", async () => {
-      const promises = []
+      const promises = [];
 
       // get every user to deposit so each coin can be borrowed
       for (let i = 0; i < users.length; i++) {
-        const user = users[i]
-        const reserveKey = reserves[i]
-        const oracle = oracles[i]
+        const user = users[i];
+        const reserveKey = reserves[i];
+        const oracle = oracles[i];
 
         const {
           bestlendUserAccount,
@@ -231,10 +290,10 @@ describe("bestlend", () => {
           collateralAta,
           liquidityAta,
           userLiquidityAta,
-          obligation
+          obligation,
         } = await reserveAccounts(connection, user, reserveKey.publicKey);
 
-        const tx = new Transaction()
+        const tx = new Transaction();
 
         tx.add(
           createRefreshReserveInstruction({
@@ -277,16 +336,20 @@ describe("bestlend", () => {
             .instruction()
         );
 
-        promises.push(sendAndConfirmTransaction(connection, tx, [user], { skipPreflight: true }));
+        promises.push(
+          sendAndConfirmTransaction(connection, tx, [user], {
+            skipPreflight: true,
+          })
+        );
       }
 
-      await Promise.all(promises)
-    })
+      await Promise.all(promises);
+    });
 
     it("withdraw", async () => {
-      const user = users[0]
-      const reserveKey = reserves[0]
-      const oracle = oracles[0]
+      const user = users[0];
+      const reserveKey = reserves[0];
+      const oracle = oracles[0];
 
       const {
         bestlendUserAccount,
@@ -294,10 +357,10 @@ describe("bestlend", () => {
         collateralAta,
         liquidityAta,
         userLiquidityAta,
-        obligation
+        obligation,
       } = await reserveAccounts(connection, user, reserveKey.publicKey);
 
-      const tx = new Transaction()
+      const tx = new Transaction();
 
       tx.add(
         createRefreshReserveInstruction({
@@ -311,9 +374,13 @@ describe("bestlend", () => {
         createRefreshObligationInstruction({
           lendingMarket: lendingMarket.publicKey,
           obligation,
-          anchorRemainingAccounts: [{
-            pubkey: reserveKey.publicKey, isSigner: false, isWritable: false
-          }]
+          anchorRemainingAccounts: [
+            {
+              pubkey: reserveKey.publicKey,
+              isSigner: false,
+              isWritable: false,
+            },
+          ],
         })
       );
 
@@ -330,8 +397,7 @@ describe("bestlend", () => {
             reserve: reserveKey.publicKey,
             reserveLiquiditySupply: reserve.liquidity.supplyVault,
             reserveCollateralMint: reserve.collateral.mintPubkey,
-            reserveSourceDepositCollateral:
-              reserve.collateral.supplyVault,
+            reserveSourceDepositCollateral: reserve.collateral.supplyVault,
             userDestinationLiquidity: userLiquidityAta.address,
             userDestinationCollateral: collateralAta.address,
             instructions: new PublicKey(
@@ -342,22 +408,20 @@ describe("bestlend", () => {
           .instruction()
       );
 
-      await sendAndConfirmTransaction(connection, tx, [user], { skipPreflight: true });
-    })
+      await sendAndConfirmTransaction(connection, tx, [user], {
+        skipPreflight: true,
+      });
+    });
 
     it("borrow", async () => {
-      const user = users[0]
-      const reserveKey = reserves[0]
-      const borrowReserveKey = reserves[3]
+      const user = users[0];
+      const reserveKey = reserves[0];
+      const borrowReserveKey = reserves[3];
 
-      const {
-        bestlendUserAccount,
-        reserve,
-        userLiquidityAta,
-        obligation
-      } = await reserveAccounts(connection, user, borrowReserveKey.publicKey);
+      const { bestlendUserAccount, reserve, userLiquidityAta, obligation } =
+        await reserveAccounts(connection, user, borrowReserveKey.publicKey);
 
-      const tx = new Transaction()
+      const tx = new Transaction();
 
       for (let i of [0, 3]) {
         tx.add(
@@ -373,9 +437,13 @@ describe("bestlend", () => {
         createRefreshObligationInstruction({
           lendingMarket: lendingMarket.publicKey,
           obligation,
-          anchorRemainingAccounts: [{
-            pubkey: reserveKey.publicKey, isSigner: false, isWritable: false
-          }]
+          anchorRemainingAccounts: [
+            {
+              pubkey: reserveKey.publicKey,
+              isSigner: false,
+              isWritable: false,
+            },
+          ],
         })
       );
 
@@ -401,24 +469,26 @@ describe("bestlend", () => {
           .instruction()
       );
 
-      await sendAndConfirmTransaction(connection, tx, [user], { skipPreflight: true });
-    })
+      await sendAndConfirmTransaction(connection, tx, [user], {
+        skipPreflight: true,
+      });
+    });
 
     it("repay", async () => {
-      const user = users[0]
-      const reserveKey = reserves[0]
-      const borrowReserveKey = reserves[3]
-      const reservesIdxs = [0, 3]
+      const user = users[0];
+      const reserveKey = reserves[0];
+      const borrowReserveKey = reserves[3];
+      const reservesIdxs = [0, 3];
 
       const {
         bestlendUserAccount,
         reserve,
         liquidityAta,
         userLiquidityAta,
-        obligation
+        obligation,
       } = await reserveAccounts(connection, user, borrowReserveKey.publicKey);
 
-      const tx = new Transaction()
+      const tx = new Transaction();
 
       for (let i of reservesIdxs) {
         tx.add(
@@ -435,9 +505,17 @@ describe("bestlend", () => {
           lendingMarket: lendingMarket.publicKey,
           obligation,
           anchorRemainingAccounts: [
-            { pubkey: reserveKey.publicKey, isSigner: false, isWritable: false },
-            { pubkey: borrowReserveKey.publicKey, isSigner: false, isWritable: false },
-          ]
+            {
+              pubkey: reserveKey.publicKey,
+              isSigner: false,
+              isWritable: false,
+            },
+            {
+              pubkey: borrowReserveKey.publicKey,
+              isSigner: false,
+              isWritable: false,
+            },
+          ],
         })
       );
 
@@ -462,17 +540,23 @@ describe("bestlend", () => {
           .instruction()
       );
 
-      await sendAndConfirmTransaction(connection, tx, [user], { skipPreflight: true });
-    })
+      await sendAndConfirmTransaction(connection, tx, [user], {
+        skipPreflight: true,
+      });
+    });
 
     it("validate LTV", async () => {
-      const user = users[0]
-      const reserveKey = reserves[0]
-      const borrowReserveKey = reserves[3]
-      const reservesIdxs = [0, 3]
+      const user = users[0];
+      const reserveKey = reserves[0];
+      const borrowReserveKey = reserves[3];
+      const reservesIdxs = [0, 3];
 
-      const tx = new Transaction()
-      const { obligation } = await reserveAccounts(connection, user, borrowReserveKey.publicKey);
+      const tx = new Transaction();
+      const { obligation } = await reserveAccounts(
+        connection,
+        user,
+        borrowReserveKey.publicKey
+      );
 
       for (let i of reservesIdxs) {
         tx.add(
@@ -489,49 +573,49 @@ describe("bestlend", () => {
           lendingMarket: lendingMarket.publicKey,
           obligation,
           anchorRemainingAccounts: [
-            { pubkey: reserveKey.publicKey, isSigner: false, isWritable: false },
-            { pubkey: borrowReserveKey.publicKey, isSigner: false, isWritable: false },
-          ]
+            {
+              pubkey: reserveKey.publicKey,
+              isSigner: false,
+              isWritable: false,
+            },
+            {
+              pubkey: borrowReserveKey.publicKey,
+              isSigner: false,
+              isWritable: false,
+            },
+          ],
         })
       );
 
-      await sendAndConfirmTransaction(connection, tx, [user], { skipPreflight: true });
+      await sendAndConfirmTransaction(connection, tx, [user], {
+        skipPreflight: true,
+      });
 
       const market = await KaminoMarket.load(
         connection,
         lendingMarket.publicKey,
-        KLEND_PROGRAM_ID,
+        KLEND_PROGRAM_ID
       );
 
       const obl = await market.getObligationByAddress(obligation);
 
-      const ltv = obl.loanToValue().toNumber()
-      assert.equal(ltv.toFixed(3), "0.028")
+      const ltv = obl.loanToValue().toNumber();
+      assert.equal(ltv.toFixed(3), "0.028");
 
-      const depositValue = obl.getDepositedValue().toNumber()
-      const borrowValue = obl.getBorrowedMarketValue().toNumber()
-      assert.equal(depositValue.toFixed(2), "4899.02")
-      assert.equal(borrowValue.toFixed(3), "137.200")
-    })
+      const depositValue = obl.getDepositedValue().toNumber();
+      const borrowValue = obl.getBorrowedMarketValue().toNumber();
+      assert.equal(depositValue.toFixed(2), "4899.02");
+      assert.equal(borrowValue.toFixed(3), "137.200");
+    });
 
-    it("create LUT", async () => {
-      let latestBlockhash = await connection.getLatestBlockhash('finalized');
-      const recentSlot = await connection.getSlot("finalized");
-
-      const [lookupTableIx, lookupTableAddress] =
-        AddressLookupTableProgram.createLookupTable({
-          authority: users[0].publicKey,
-          payer: users[0].publicKey,
-          recentSlot: recentSlot,
-        });
-
-      lut = lookupTableAddress
+    it("extend LUTs", async () => {
+      let latestBlockhash = await connection.getLatestBlockhash("finalized");
 
       // all reserves and oracles
       const addresses = [
-        ...reserves.map(r => r.publicKey),
-        ...oracles.map(r => r.publicKey),
-      ]
+        ...reserves.map((r) => r.publicKey),
+        ...oracles.map((r) => r.publicKey),
+      ];
 
       // program ids
       addresses.push(
@@ -540,21 +624,21 @@ describe("bestlend", () => {
         dummySwap.programId,
         lendingMarket.publicKey,
         lendingMarketAuthority,
-        new PublicKey(
-          "Sysvar1nstructions1111111111111111111111111"
-        ),
-      )
+        new PublicKey("Sysvar1nstructions1111111111111111111111111")
+      );
 
       const [bestlendUserAccount] = PublicKey.findProgramAddressSync(
         [Buffer.from("bestlend_user_account"), users[0].publicKey.toBuffer()],
         program.programId
       );
-      addresses.push(bestlendUserAccount)
+      addresses.push(bestlendUserAccount);
 
       // performer and user atas
       for (let mint of mints) {
-        addresses.push(getAssociatedTokenAddressSync(mint, performer.publicKey))
-        addresses.push(getAssociatedTokenAddressSync(mint, users[0].publicKey))
+        addresses.push(
+          getAssociatedTokenAddressSync(mint, performer.publicKey)
+        );
+        addresses.push(getAssociatedTokenAddressSync(mint, users[0].publicKey));
 
         // reserve PDAs
         const {
@@ -562,49 +646,52 @@ describe("bestlend", () => {
           reserveLiquiditySupply,
           reserveCollateralMint,
           reserveCollateralSupply,
-        } = reservePDAs(mint)
+        } = reservePDAs(mint);
 
         addresses.push(
           feeReceiver,
           reserveLiquiditySupply,
           reserveCollateralMint,
-          reserveCollateralSupply,
-        )
+          reserveCollateralSupply
+        );
       }
 
       const extendInstructionA = AddressLookupTableProgram.extendLookupTable({
         payer: users[0].publicKey,
         authority: users[0].publicKey,
-        lookupTable: lookupTableAddress,
+        lookupTable: luts[0],
         addresses: addresses.slice(0, 30),
       });
       const extendInstructionB = AddressLookupTableProgram.extendLookupTable({
         payer: users[0].publicKey,
         authority: users[0].publicKey,
-        lookupTable: lookupTableAddress,
+        lookupTable: luts[0],
         addresses: addresses.slice(30),
       });
 
-      for (const ix of [lookupTableIx, extendInstructionA, extendInstructionB]) {
+      for (const ix of [extendInstructionA, extendInstructionB]) {
         const msg = new TransactionMessage({
           payerKey: users[0].publicKey,
           recentBlockhash: latestBlockhash.blockhash,
           instructions: [ix],
-        }).compileToV0Message()
+        }).compileToV0Message();
 
         const tx = new VersionedTransaction(msg);
-        tx.sign([users[0]])
+        tx.sign([users[0]]);
 
-        const sig = await connection.sendTransaction(tx)
+        const sig = await connection.sendTransaction(tx);
         const confirmation = await connection.confirmTransaction({
           signature: sig,
           blockhash: latestBlockhash.blockhash,
-          lastValidBlockHeight: latestBlockhash.lastValidBlockHeight
-        })
+          lastValidBlockHeight: latestBlockhash.lastValidBlockHeight,
+        });
 
-        assert.isTrue(!confirmation.value.err, `err: ${JSON.stringify(confirmation.value.err)}`)
+        assert.isTrue(
+          !confirmation.value.err,
+          `err: ${JSON.stringify(confirmation.value.err)}`
+        );
       }
-    })
+    });
 
     it("performer withdraw and deposit same", async () => {
       const {
@@ -612,16 +699,25 @@ describe("bestlend", () => {
         reserve,
         collateralAta,
         userLiquidityAta,
-        obligation
-      } = await reserveAccounts(connection, users[0], reserves[0].publicKey, performer);
+        obligation,
+      } = await reserveAccounts(
+        connection,
+        users[0],
+        reserves[0].publicKey,
+        performer
+      );
 
       const valueRemainingAccounts = await accountValueRemainingAccounts(
-        connection, performer, users[0].publicKey, mints, oracles.map(o => o.publicKey),
-      )
+        connection,
+        performer,
+        users[0].publicKey,
+        mints,
+        oracles.map((o) => o.publicKey)
+      );
 
-      const ixs = []
+      const ixs = [];
 
-      let refreshIxs = []
+      let refreshIxs = [];
       for (let i of [0, 3]) {
         refreshIxs.push(
           createRefreshReserveInstruction({
@@ -637,19 +733,28 @@ describe("bestlend", () => {
           lendingMarket: lendingMarket.publicKey,
           obligation,
           anchorRemainingAccounts: [
-            { pubkey: reserves[0].publicKey, isSigner: false, isWritable: false },
-            { pubkey: reserves[3].publicKey, isSigner: false, isWritable: false },
-          ]
+            {
+              pubkey: reserves[0].publicKey,
+              isSigner: false,
+              isWritable: false,
+            },
+            {
+              pubkey: reserves[3].publicKey,
+              isSigner: false,
+              isWritable: false,
+            },
+          ],
         })
       );
 
-      ixs.push(...refreshIxs)
+      ixs.push(...refreshIxs);
 
       /**
        * PRE ACTION
        */
       ixs.push(
-        await program.methods.preAction(new BN(475800), 2)
+        await program.methods
+          .preAction(new BN(475800), 2)
           .accounts({
             signer: performer.publicKey,
             bestlendUserAccount,
@@ -660,12 +765,12 @@ describe("bestlend", () => {
           })
           .remainingAccounts(valueRemainingAccounts)
           .instruction()
-      )
+      );
 
       /**
        * REBALANCE
        */
-      refreshIxs = []
+      refreshIxs = [];
       for (let i of [3, 0]) {
         refreshIxs.push(
           createRefreshReserveInstruction({
@@ -681,13 +786,21 @@ describe("bestlend", () => {
           lendingMarket: lendingMarket.publicKey,
           obligation,
           anchorRemainingAccounts: [
-            { pubkey: reserves[0].publicKey, isSigner: false, isWritable: false },
-            { pubkey: reserves[3].publicKey, isSigner: false, isWritable: false },
-          ]
+            {
+              pubkey: reserves[0].publicKey,
+              isSigner: false,
+              isWritable: false,
+            },
+            {
+              pubkey: reserves[3].publicKey,
+              isSigner: false,
+              isWritable: false,
+            },
+          ],
         })
       );
 
-      ixs.push(...refreshIxs)
+      ixs.push(...refreshIxs);
 
       ixs.push(
         await program.methods
@@ -702,8 +815,7 @@ describe("bestlend", () => {
             reserve: reserves[0].publicKey,
             reserveLiquiditySupply: reserve.liquidity.supplyVault,
             reserveCollateralMint: reserve.collateral.mintPubkey,
-            reserveSourceDepositCollateral:
-              reserve.collateral.supplyVault,
+            reserveSourceDepositCollateral: reserve.collateral.supplyVault,
             userDestinationLiquidity: userLiquidityAta.address,
             userDestinationCollateral: collateralAta.address,
             instructions: new PublicKey(
@@ -713,16 +825,12 @@ describe("bestlend", () => {
           .instruction()
       );
 
-      const {
-        tokenPDA,
-        inputATA,
-        outputATA,
-        pdaInputATA,
-        pdaOutputATA,
-      } = await swapAccounts(connection, mints[0], mints[1], performer)
+      const { tokenPDA, inputATA, outputATA, pdaInputATA, pdaOutputATA } =
+        await swapAccounts(connection, mints[0], mints[1], performer);
 
       ixs.push(
-        await dummySwap.methods.swap(new BN(1e8), new BN(1.003e8))
+        await dummySwap.methods
+          .swap(new BN(1e8), new BN(1.003e8))
           .accounts({
             swapper: performer.publicKey,
             swapperInputToken: inputATA,
@@ -730,10 +838,11 @@ describe("bestlend", () => {
             tokenHolderPda: tokenPDA,
             pdaInputToken: pdaInputATA,
             pdaOutputToken: pdaOutputATA,
-          }).instruction()
-      )
+          })
+          .instruction()
+      );
 
-      refreshIxs = []
+      refreshIxs = [];
       for (let i of [3, 0, 1]) {
         refreshIxs.push(
           createRefreshReserveInstruction({
@@ -749,19 +858,32 @@ describe("bestlend", () => {
           lendingMarket: lendingMarket.publicKey,
           obligation,
           anchorRemainingAccounts: [
-            { pubkey: reserves[0].publicKey, isSigner: false, isWritable: false },
-            { pubkey: reserves[3].publicKey, isSigner: false, isWritable: false },
-          ]
+            {
+              pubkey: reserves[0].publicKey,
+              isSigner: false,
+              isWritable: false,
+            },
+            {
+              pubkey: reserves[3].publicKey,
+              isSigner: false,
+              isWritable: false,
+            },
+          ],
         })
       );
 
-      ixs.push(...refreshIxs)
+      ixs.push(...refreshIxs);
 
       const {
         reserve: reserveOther,
         collateralAta: collateralAtaOther,
         liquidityAta,
-      } = await reserveAccounts(connection, users[0], reserves[1].publicKey, performer);
+      } = await reserveAccounts(
+        connection,
+        users[0],
+        reserves[1].publicKey,
+        performer
+      );
 
       ixs.push(
         await program.methods
@@ -788,7 +910,7 @@ describe("bestlend", () => {
           .instruction()
       );
 
-      refreshIxs = []
+      refreshIxs = [];
       for (let i of [0, 1, 3]) {
         refreshIxs.push(
           createRefreshReserveInstruction({
@@ -804,20 +926,33 @@ describe("bestlend", () => {
           lendingMarket: lendingMarket.publicKey,
           obligation,
           anchorRemainingAccounts: [
-            { pubkey: reserves[0].publicKey, isSigner: false, isWritable: false },
-            { pubkey: reserves[1].publicKey, isSigner: false, isWritable: false },
-            { pubkey: reserves[3].publicKey, isSigner: false, isWritable: false },
-          ]
+            {
+              pubkey: reserves[0].publicKey,
+              isSigner: false,
+              isWritable: false,
+            },
+            {
+              pubkey: reserves[1].publicKey,
+              isSigner: false,
+              isWritable: false,
+            },
+            {
+              pubkey: reserves[3].publicKey,
+              isSigner: false,
+              isWritable: false,
+            },
+          ],
         })
       );
 
-      ixs.push(...refreshIxs)
+      ixs.push(...refreshIxs);
 
       /**
        * POST ACTION
        */
       ixs.push(
-        await program.methods.postAction()
+        await program.methods
+          .postAction()
           .accounts({
             signer: performer.publicKey,
             bestlendUserAccount,
@@ -828,31 +963,36 @@ describe("bestlend", () => {
           })
           .remainingAccounts(valueRemainingAccounts)
           .instruction()
-      )
+      );
 
       /**
        * V0 tx with LUT
        */
-      const lookupTableAccount = (await connection.getAddressLookupTable(lut)).value;
-      let latestBlockhash = await connection.getLatestBlockhash('finalized');
+      const lookupTableAccount = (
+        await connection.getAddressLookupTable(luts[0])
+      ).value;
+      let latestBlockhash = await connection.getLatestBlockhash("finalized");
 
       const msg = new TransactionMessage({
         payerKey: performer.publicKey,
         recentBlockhash: latestBlockhash.blockhash,
         instructions: ixs,
-      }).compileToV0Message([lookupTableAccount])
+      }).compileToV0Message([lookupTableAccount]);
 
       const tx = new VersionedTransaction(msg);
-      tx.sign([performer])
+      tx.sign([performer]);
 
-      const sig = await connection.sendTransaction(tx, { skipPreflight: true })
+      const sig = await connection.sendTransaction(tx, { skipPreflight: true });
       const confirmation = await connection.confirmTransaction({
         signature: sig,
         blockhash: latestBlockhash.blockhash,
-        lastValidBlockHeight: latestBlockhash.lastValidBlockHeight
-      })
+        lastValidBlockHeight: latestBlockhash.lastValidBlockHeight,
+      });
 
-      assert.isTrue(!confirmation.value.err, `err: ${JSON.stringify(confirmation.value.err)}`)
-    })
+      assert.isTrue(
+        !confirmation.value.err,
+        `err: ${JSON.stringify(confirmation.value.err)}`
+      );
+    });
   });
 });
