@@ -1,12 +1,15 @@
 import * as anchor from "@coral-xyz/anchor";
 import { bs58 } from "@coral-xyz/anchor/dist/cjs/utils/bytes";
-import { getOrCreateAssociatedTokenAccount, createMint, mintTo } from "@solana/spl-token";
+import {
+  getOrCreateAssociatedTokenAccount,
+  createMint,
+  mintTo,
+} from "@solana/spl-token";
 import { Keypair, Connection, PublicKey } from "@solana/web3.js";
 
-
 export const keyPairFromB58 = (s: string): Keypair => {
-  return Keypair.fromSecretKey(bs58.decode(s))
-}
+  return Keypair.fromSecretKey(bs58.decode(s));
+};
 
 export const airdrop = async (
   provider: anchor.Provider,
@@ -19,11 +22,25 @@ export const airdrop = async (
   );
 };
 
-export const mintToken = async (connection: Connection, owner: Keypair, ticker: string, keypair: Keypair, users?: PublicKey[]) => {
-  const dec = ticker.includes("USD") ? 6 : 9
-  const mint = await createMint(connection, owner, owner.publicKey, null, dec, keypair);
+export const mintToken = async (
+  connection: Connection,
+  owner: Keypair,
+  ticker: string,
+  keypair: Keypair,
+  users?: PublicKey[],
+  signer?: Keypair
+) => {
+  const dec = ticker.includes("USD") ? 6 : 9;
+  const mint = await createMint(
+    connection,
+    signer,
+    owner.publicKey,
+    null,
+    dec,
+    keypair
+  );
 
-  for (let user of [...(users || []), owner.publicKey]) {
+  for (let user of [...(users || []), owner.publicKey, signer.publicKey]) {
     const ata = await getOrCreateAssociatedTokenAccount(
       connection,
       owner,
@@ -31,8 +48,7 @@ export const mintToken = async (connection: Connection, owner: Keypair, ticker: 
       user,
       true
     );
-
-    await mintTo(connection, owner, mint, ata.address, owner, 1e10)
+    await mintTo(connection, owner, mint, ata.address, owner, 1e10);
   }
 
   return mint;

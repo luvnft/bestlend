@@ -22,15 +22,23 @@ import {
   Image,
   Spacer,
 } from "@chakra-ui/react";
-import { useWallet } from "@solana/wallet-adapter-react";
+import { useConnection, useWallet } from "@solana/wallet-adapter-react";
 import Wallet from "./wallet";
 import { useEffect, useState } from "react";
 import { ASSETS, LSTS, STABLES } from "@/utils/consts";
 import { Asset, AssetGroup } from "@/utils/models";
+import { useQuery } from "react-query";
+import { getBestLendAccount } from "@/requests/bestlend";
 
 const InitAccount = () => {
   const { publicKey } = useWallet();
+  const { connection } = useConnection();
   const { tokenBalances, isLoading } = useGetTokenBalances();
+  const bestlendAccount = useQuery(
+    "bestlendAccount",
+    () => getBestLendAccount(connection, publicKey),
+    { enabled: !!publicKey }
+  );
 
   // selected tokens with defaults
   const [selectedDepositToken, setSelectedDepositToken] = useState(
@@ -50,10 +58,16 @@ const InitAccount = () => {
 
   const createDisabled =
     isLoading ||
+    bestlendAccount.isLoading ||
     !publicKey ||
     depositAmount > (depositBalance ?? 0) ||
     !depositAmount ||
     borrowAmount > depositAmount;
+
+  // account already exists, not need to show onboarding flow
+  if (!bestlendAccount.isError && bestlendAccount.isFetched) {
+    return null;
+  }
 
   return (
     <Center>
