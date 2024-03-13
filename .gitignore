@@ -8,3 +8,4 @@ test-ledger
 keys.ts
 .crates
 scratch.ts
+.env

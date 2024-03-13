@@ -1,16 +1,23 @@
+require("dotenv").config();
 import { Command } from "commander";
 import {
-  Connection,
+  Transaction,
   Keypair,
   sendAndConfirmTransaction as sendTx,
 } from "@solana/web3.js";
 import fs from "fs";
 import { keys } from "../keys";
 import { keyPairFromB58 } from "../tests/utils";
+import { ShyftSdk, Network } from "@shyft-to/js";
+import { createWritePythPriceInstruction } from "../clients/mock-pyth/src";
 
-const connection = new Connection("https://api.devnet.solana.com", "confirmed");
 const defaultKeypairLocation = "/home/sc4recoin/.config/solana/id.json";
 const ASSETS = ["USDC", "USDT", "SOL", "JitoSOL", "mSOL", "bSOL"];
+
+const shyft = new ShyftSdk({
+  apiKey: process.env.SHYFT_API_KEY ?? "",
+  network: Network.Devnet,
+});
 
 const cli = new Command();
 
@@ -25,10 +32,42 @@ cli
     const wallet = loadKeypair(keypair);
   });
 
-cli.command("printPubkey").action(async ({ keypair }) => {
-  const wallet = keyPairFromB58(keys.lendingMarket);
-  console.log("pubkey: ", wallet.publicKey.toBase58());
-});
+cli
+  .command("writePythPrice")
+  .argument("<ticker>", "ticker of asset")
+  .argument("<price>", "price in base")
+  .argument("<decimals>", "price decimals")
+  .option(
+    "-kp, --keypair <keypair>",
+    "location of keypair",
+    defaultKeypairLocation
+  )
+  .action(async (ticker, price, decimals, optional) => {
+    const wallet = loadKeypair(optional.keypair);
+
+    const oracle = keyPairFromB58(keys.oracles[ticker]);
+
+    const ix = createWritePythPriceInstruction(
+      {
+        target: oracle.publicKey,
+        signer: wallet.publicKey,
+      },
+      {
+        price: parseInt(price),
+        expo: parseInt(decimals) * -1,
+        slot: 1,
+        timestampSec: 1,
+      }
+    );
+
+    const tx = new Transaction().add(ix);
+
+    const signature = await shyft.connection.sendTransaction(tx, [
+      wallet,
+      oracle,
+    ]);
+    console.log({ signature });
+  });
 
 const loadKeypair = (filename: string) => {
   const walletKey = JSON.parse(fs.readFileSync(filename, "utf-8"));

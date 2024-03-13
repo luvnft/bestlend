@@ -10,7 +10,6 @@ import {
   SystemProgram,
   sendAndConfirmTransaction,
   Keypair,
-  AccountMeta,
   AddressLookupTableProgram,
   VersionedTransaction,
   TransactionMessage,
