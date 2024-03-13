@@ -1,0 +1,595 @@
+{
+  "version": "0.1.0",
+  "name": "bestlend",
+  "instructions": [
+    {
+      "name": "initAccount",
+      "accounts": [
+        {
+          "name": "owner",
+          "isMut": true,
+          "isSigner": true
+        },
+        {
+          "name": "bestlendUserAccount",
+          "isMut": true,
+          "isSigner": false
+        },
+        {
+          "name": "systemProgram",
+          "isMut": false,
+          "isSigner": false
+        }
+      ],
+      "args": [
+        {
+          "name": "collateralGroup",
+          "type": "u8"
+        },
+        {
+          "name": "debtGroup",
+          "type": "u8"
+        },
+        {
+          "name": "lookupTable",
+          "type": "publicKey"
+        }
+      ]
+    },
+    {
+      "name": "preAction",
+      "accounts": [
+        {
+          "name": "signer",
+          "isMut": true,
+          "isSigner": true
+        },
+        {
+          "name": "bestlendUserAccount",
+          "isMut": false,
+          "isSigner": false
+        },
+        {
+          "name": "klendObligation",
+          "isMut": false,
+          "isSigner": false
+        },
+        {
+          "name": "instructions",
+          "isMut": false,
+          "isSigner": false
+        }
+      ],
+      "args": [
+        {
+          "name": "minAccountValue",
+          "type": "i64"
+        },
+        {
+          "name": "minAccountExpo",
+          "type": "u32"
+        }
+      ]
+    },
+    {
+      "name": "postAction",
+      "accounts": [
+        {
+          "name": "signer",
+          "isMut": true,
+          "isSigner": true
+        },
+        {
+          "name": "bestlendUserAccount",
+          "isMut": false,
+          "isSigner": false
+        },
+        {
+          "name": "klendObligation",
+          "isMut": false,
+          "isSigner": false
+        },
+        {
+          "name": "instructions",
+          "isMut": false,
+          "isSigner": false
+        }
+      ],
+      "args": []
+    },
+    {
+      "name": "initKlendAccount",
+      "accounts": [
+        {
+          "name": "owner",
+          "isMut": true,
+          "isSigner": true
+        },
+        {
+          "name": "bestlendUserAccount",
+          "isMut": true,
+          "isSigner": false
+        },
+        {
+          "name": "systemProgram",
+          "isMut": false,
+          "isSigner": false
+        },
+        {
+          "name": "rent",
+          "isMut": false,
+          "isSigner": false
+        },
+        {
+          "name": "tokenProgram",
+          "isMut": false,
+          "isSigner": false
+        },
+        {
+          "name": "klendProgram",
+          "isMut": false,
+          "isSigner": false
+        },
+        {
+          "name": "seed1Account",
+          "isMut": false,
+          "isSigner": false
+        },
+        {
+          "name": "seed2Account",
+          "isMut": false,
+          "isSigner": false
+        },
+        {
+          "name": "lendingMarket",
+          "isMut": false,
+          "isSigner": false
+        },
+        {
+          "name": "obligation",
+          "isMut": true,
+          "isSigner": false
+        },
+        {
+          "name": "userMetadata",
+          "isMut": true,
+          "isSigner": false
+        }
+      ],
+      "args": []
+    },
+    {
+      "name": "klendDeposit",
+      "accounts": [
+        {
+          "name": "signer",
+          "isMut": true,
+          "isSigner": true
+        },
+        {
+          "name": "bestlendUserAccount",
+          "isMut": true,
+          "isSigner": false
+        },
+        {
+          "name": "userSourceLiquidity",
+          "isMut": true,
+          "isSigner": false
+        },
+        {
+          "name": "bestlendUserSourceLiquidity",
+          "isMut": true,
+          "isSigner": false
+        },
+        {
+          "name": "tokenProgram",
+          "isMut": false,
+          "isSigner": false
+        },
+        {
+          "name": "klendProgram",
+          "isMut": false,
+          "isSigner": false
+        },
+        {
+          "name": "obligation",
+          "isMut": true,
+          "isSigner": false
+        },
+        {
+          "name": "lendingMarket",
+          "isMut": false,
+          "isSigner": false
+        },
+        {
+          "name": "reserve",
+          "isMut": true,
+          "isSigner": false
+        },
+        {
+          "name": "reserveLiquiditySupply",
+          "isMut": true,
+          "isSigner": false
+        },
+        {
+          "name": "reserveCollateralMint",
+          "isMut": true,
+          "isSigner": false
+        },
+        {
+          "name": "reserveDestinationDepositCollateral",
+          "isMut": true,
+          "isSigner": false
+        },
+        {
+          "name": "lendingMarketAuthority",
+          "isMut": false,
+          "isSigner": false
+        },
+        {
+          "name": "userDestinationCollateral",
+          "isMut": true,
+          "isSigner": false
+        },
+        {
+          "name": "instructionSysvarAccount",
+          "isMut": false,
+          "isSigner": false
+        }
+      ],
+      "args": [
+        {
+          "name": "amount",
+          "type": "u64"
+        }
+      ]
+    },
+    {
+      "name": "klendWithdraw",
+      "accounts": [
+        {
+          "name": "signer",
+          "isMut": true,
+          "isSigner": true
+        },
+        {
+          "name": "bestlendUserAccount",
+          "isMut": true,
+          "isSigner": false
+        },
+        {
+          "name": "userDestinationLiquidity",
+          "isMut": true,
+          "isSigner": false
+        },
+        {
+          "name": "tokenProgram",
+          "isMut": false,
+          "isSigner": false
+        },
+        {
+          "name": "instructions",
+          "isMut": false,
+          "isSigner": false
+        },
+        {
+          "name": "klendProgram",
+          "isMut": false,
+          "isSigner": false
+        },
+        {
+          "name": "obligation",
+          "isMut": true,
+          "isSigner": false
+        },
+        {
+          "name": "lendingMarket",
+          "isMut": false,
+          "isSigner": false
+        },
+        {
+          "name": "reserve",
+          "isMut": true,
+          "isSigner": false
+        },
+        {
+          "name": "reserveLiquiditySupply",
+          "isMut": true,
+          "isSigner": false
+        },
+        {
+          "name": "reserveCollateralMint",
+          "isMut": true,
+          "isSigner": false
+        },
+        {
+          "name": "reserveSourceDepositCollateral",
+          "isMut": true,
+          "isSigner": false
+        },
+        {
+          "name": "lendingMarketAuthority",
+          "isMut": false,
+          "isSigner": false
+        },
+        {
+          "name": "userDestinationCollateral",
+          "isMut": true,
+          "isSigner": false
+        }
+      ],
+      "args": [
+        {
+          "name": "amount",
+          "type": "u64"
+        }
+      ]
+    },
+    {
+      "name": "klendBorrow",
+      "accounts": [
+        {
+          "name": "signer",
+          "isMut": true,
+          "isSigner": true
+        },
+        {
+          "name": "bestlendUserAccount",
+          "isMut": true,
+          "isSigner": false
+        },
+        {
+          "name": "userDestinationLiquidity",
+          "isMut": true,
+          "isSigner": false
+        },
+        {
+          "name": "instructions",
+          "isMut": false,
+          "isSigner": false
+        },
+        {
+          "name": "klendProgram",
+          "isMut": false,
+          "isSigner": false
+        },
+        {
+          "name": "obligation",
+          "isMut": true,
+          "isSigner": false
+        },
+        {
+          "name": "lendingMarket",
+          "isMut": false,
+          "isSigner": false
+        },
+        {
+          "name": "reserve",
+          "isMut": true,
+          "isSigner": false
+        },
+        {
+          "name": "lendingMarketAuthority",
+          "isMut": false,
+          "isSigner": false
+        },
+        {
+          "name": "reserveSourceLiquidity",
+          "isMut": true,
+          "isSigner": false
+        },
+        {
+          "name": "borrowReserveLiquidityFeeReceiver",
+          "isMut": true,
+          "isSigner": false
+        },
+        {
+          "name": "tokenProgram",
+          "isMut": false,
+          "isSigner": false
+        }
+      ],
+      "args": [
+        {
+          "name": "amount",
+          "type": "u64"
+        }
+      ]
+    },
+    {
+      "name": "klendRepay",
+      "accounts": [
+        {
+          "name": "signer",
+          "isMut": true,
+          "isSigner": true
+        },
+        {
+          "name": "bestlendUserAccount",
+          "isMut": true,
+          "isSigner": false
+        },
+        {
+          "name": "userSourceLiquidity",
+          "isMut": true,
+          "isSigner": false
+        },
+        {
+          "name": "bestlendUserSourceLiquidity",
+          "isMut": true,
+          "isSigner": false
+        },
+        {
+          "name": "klendProgram",
+          "isMut": false,
+          "isSigner": false
+        },
+        {
+          "name": "obligation",
+          "isMut": true,
+          "isSigner": false
+        },
+        {
+          "name": "lendingMarket",
+          "isMut": false,
+          "isSigner": false
+        },
+        {
+          "name": "reserve",
+          "isMut": true,
+          "isSigner": false
+        },
+        {
+          "name": "reserveDestinationLiquidity",
+          "isMut": true,
+          "isSigner": false
+        },
+        {
+          "name": "instructionSysvarAccount",
+          "isMut": false,
+          "isSigner": false
+        },
+        {
+          "name": "tokenProgram",
+          "isMut": false,
+          "isSigner": false
+        }
+      ],
+      "args": [
+        {
+          "name": "amount",
+          "type": "u64"
+        }
+      ]
+    }
+  ],
+  "accounts": [
+    {
+      "name": "BestLendUserAccount",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "owner",
+            "type": "publicKey"
+          },
+          {
+            "name": "address",
+            "type": "publicKey"
+          },
+          {
+            "name": "collateralGroup",
+            "type": "u8"
+          },
+          {
+            "name": "debtGroup",
+            "type": "u8"
+          },
+          {
+            "name": "blackListedAssets",
+            "type": {
+              "array": [
+                "publicKey",
+                5
+              ]
+            }
+          },
+          {
+            "name": "priceImpactBps",
+            "type": "u8"
+          },
+          {
+            "name": "lastAccountValue",
+            "type": {
+              "defined": "Price"
+            }
+          },
+          {
+            "name": "lookupTable",
+            "type": "publicKey"
+          }
+        ]
+      }
+    }
+  ],
+  "types": [
+    {
+      "name": "Price",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "value",
+            "type": "i64"
+          },
+          {
+            "name": "expo",
+            "type": "i64"
+          }
+        ]
+      }
+    },
+    {
+      "name": "AssetGroup",
+      "type": {
+        "kind": "enum",
+        "variants": [
+          {
+            "name": "STABLE"
+          },
+          {
+            "name": "LST"
+          }
+        ]
+      }
+    }
+  ],
+  "errors": [
+    {
+      "code": 6000,
+      "name": "MatchingAssetGroups",
+      "msg": "Asset groups cannot be the same"
+    },
+    {
+      "code": 6001,
+      "name": "PriceNotValid",
+      "msg": "Invalid oracle price"
+    },
+    {
+      "code": 6002,
+      "name": "MissingAccount",
+      "msg": "Remaining account missing"
+    },
+    {
+      "code": 6003,
+      "name": "InvalidTokenAccountOwner",
+      "msg": "Unexpected token account owner"
+    },
+    {
+      "code": 6004,
+      "name": "AccountValueBelowMin",
+      "msg": "Account below expected value"
+    },
+    {
+      "code": 6005,
+      "name": "InvalidInstruction",
+      "msg": "Invalid instruction or intructions in unexpected order"
+    },
+    {
+      "code": 6006,
+      "name": "UnapprovedProgramID",
+      "msg": "Invalid program ID on instruction"
+    },
+    {
+      "code": 6007,
+      "name": "MissingObligationRefresh",
+      "msg": "Missing obligation refresh"
+    }
+  ],
+  "metadata": {
+    "address": "hackF7pNZ7dGZCGXaiPNnzxkSoyrBkyEyDTpywK9KJs",
+    "origin": "anchor",
+    "binaryVersion": "0.28.0",
+    "libVersion": "0.28.0"
+  }
+}
