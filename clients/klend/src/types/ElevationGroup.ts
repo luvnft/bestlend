@@ -5,16 +5,16 @@
  * See: https://github.com/metaplex-foundation/solita
  */
 
-import * as beet from '@metaplex-foundation/beet'
+import * as beet from "@metaplex-foundation/beet";
 export type ElevationGroup = {
-  maxLiquidationBonusBps: number
-  id: number
-  ltvPct: number
-  liquidationThresholdPct: number
-  allowNewLoans: number
-  reserved: number[] /* size: 2 */
-  padding: beet.bignum[] /* size: 8 */
-}
+  maxLiquidationBonusBps: number;
+  id: number;
+  ltvPct: number;
+  liquidationThresholdPct: number;
+  allowNewLoans: number;
+  reserved: number[] /* size: 2 */;
+  padding: beet.bignum[] /* size: 8 */;
+};
 
 /**
  * @category userTypes
@@ -22,13 +22,13 @@ export type ElevationGroup = {
  */
 export const elevationGroupBeet = new beet.BeetArgsStruct<ElevationGroup>(
   [
-    ['maxLiquidationBonusBps', beet.u16],
-    ['id', beet.u8],
-    ['ltvPct', beet.u8],
-    ['liquidationThresholdPct', beet.u8],
-    ['allowNewLoans', beet.u8],
-    ['reserved', beet.uniformFixedSizeArray(beet.u8, 2)],
-    ['padding', beet.uniformFixedSizeArray(beet.u64, 8)],
+    ["maxLiquidationBonusBps", beet.u16],
+    ["id", beet.u8],
+    ["ltvPct", beet.u8],
+    ["liquidationThresholdPct", beet.u8],
+    ["allowNewLoans", beet.u8],
+    ["reserved", beet.uniformFixedSizeArray(beet.u8, 2)],
+    ["padding", beet.uniformFixedSizeArray(beet.u32, 16)],
   ],
-  'ElevationGroup'
-)
+  "ElevationGroup"
+);

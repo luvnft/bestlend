@@ -15,10 +15,13 @@ import {
   PROGRAM_ID as KLEND_PROGRAM_ID,
   createInitLendingMarketInstruction,
   createInitReserveInstruction,
+  createUpdateEntireReserveConfigInstruction,
 } from "../clients/klend/src";
+import { getReserveConfig } from "../tests/configs";
 
 const defaultKeypairLocation = "/home/sc4recoin/.config/solana/id.json";
 const ASSETS = ["USDC", "USDT", "SOL", "JitoSOL", "mSOL", "bSOL"];
+const PRICES = [9998, 9977, 1267000, 1372000, 1471000, 1403000];
 
 const shyft = new ShyftSdk({
   apiKey: process.env.SHYFT_API_KEY ?? "",
@@ -202,6 +205,39 @@ cli
     ]);
     console.log({ signature: signatureInit });
   });
+
+cli.command("updateReserveConfigs").action(async () => {
+  const wallet = loadKeypair(defaultKeypairLocation);
+  const lendingMarket = keyPairFromB58(keys.lendingMarket);
+
+  for (let i = 0; i < ASSETS.length; i++) {
+    const reserve = keyPairFromB58(keys.reserves[ASSETS[i]]);
+    const oracle = keyPairFromB58(keys.oracles[ASSETS[i]]);
+
+    const configBytes = getReserveConfig(
+      oracle.publicKey,
+      ASSETS[i],
+      PRICES[i],
+      4
+    );
+
+    const ix = createUpdateEntireReserveConfigInstruction(
+      {
+        lendingMarketOwner: wallet.publicKey,
+        lendingMarket: lendingMarket.publicKey,
+        reserve: reserve.publicKey,
+      },
+      {
+        mode: 25,
+        value: configBytes,
+      }
+    );
+
+    let tx = new Transaction().add(ix);
+    let signature = await shyft.connection.sendTransaction(tx, [wallet]);
+    console.log({ signature, asset: ASSETS[i] });
+  }
+});
 
 const loadKeypair = (filename: string) => {
   const walletKey = JSON.parse(fs.readFileSync(filename, "utf-8"));
