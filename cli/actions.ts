@@ -15,6 +15,7 @@ import {
   PROGRAM_ID as KLEND_PROGRAM_ID,
   createInitLendingMarketInstruction,
   createInitReserveInstruction,
+  createRefreshReserveInstruction,
   createUpdateEntireReserveConfigInstruction,
 } from "../clients/klend/src";
 import { getReserveConfig } from "../tests/configs";
@@ -238,6 +239,27 @@ cli.command("updateReserveConfigs").action(async () => {
     console.log({ signature, asset: ASSETS[i] });
   }
 });
+
+cli
+  .command("refreshReserve")
+  .argument("<ticker>", "ticker of asset")
+  .action(async (ticker) => {
+    const wallet = loadKeypair(defaultKeypairLocation);
+    const lendingMarket = keyPairFromB58(keys.lendingMarket);
+
+    const reserve = keyPairFromB58(keys.reserves[ticker]);
+    const oracle = keyPairFromB58(keys.oracles[ticker]);
+
+    const ix = createRefreshReserveInstruction({
+      reserve: reserve.publicKey,
+      lendingMarket: lendingMarket.publicKey,
+      pythOracle: oracle.publicKey,
+    });
+
+    let tx = new Transaction().add(ix);
+    let signature = await shyft.connection.sendTransaction(tx, [wallet]);
+    console.log({ signature, ticker });
+  });
 
 const loadKeypair = (filename: string) => {
   const walletKey = JSON.parse(fs.readFileSync(filename, "utf-8"));
