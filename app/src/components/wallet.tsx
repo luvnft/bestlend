@@ -20,7 +20,7 @@ import { PublicKey } from "@solana/web3.js";
 import { useEffect, useState } from "react";
 import { useQueryClient } from "react-query";
 
-const Wallet = () => {
+const WalletSelect = () => {
   const { isOpen, onOpen, onClose } = useDisclosure();
   const { select, wallets, publicKey, disconnect, connect } = useWallet();
   const queryClient = useQueryClient();
@@ -34,7 +34,7 @@ const Wallet = () => {
     if (!isOpen && !publicKey) {
       setSelectWallet(undefined);
     }
-  }, [isOpen]);
+  }, [isOpen, publicKey]);
 
   const modalContent = (
     <VStack gap={4}>
@@ -133,4 +133,4 @@ const Wallet = () => {
   );
 };
 
-export default Wallet;
+export default WalletSelect;

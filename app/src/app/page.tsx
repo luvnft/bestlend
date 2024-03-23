@@ -1,3 +1,5 @@
+"use client";
+
 import InitAccount from "@/components/initAccount";
 import NavBar from "@/components/navbar";
 import Reserve from "@/components/reserve";
@@ -12,6 +14,7 @@ import {
   Stack,
   StackDivider,
 } from "@chakra-ui/react";
+import { useConnection, useWallet } from "@solana/wallet-adapter-react";
 
 const groups: [string, Asset[]][] = [
   ["Stables", STABLES],
@@ -19,6 +22,9 @@ const groups: [string, Asset[]][] = [
 ];
 
 export default function Home() {
+  const { publicKey } = useWallet();
+  const { connection } = useConnection();
+
   return (
     <Box>
       <NavBar />
@@ -37,7 +43,11 @@ export default function Home() {
                 }
               >
                 {assets.map((s) => (
-                  <Reserve asset={s} lendingMarket={LendingMarket.KAMINO} />
+                  <Reserve
+                    key={s.mint.toBase58()}
+                    asset={s}
+                    lendingMarket={LendingMarket.KAMINO}
+                  />
                 ))}
               </Stack>
             </CardBody>
