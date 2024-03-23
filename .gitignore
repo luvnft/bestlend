@@ -9,3 +9,4 @@ keys.ts
 .crates
 scratch.ts
 .env
+dist/
