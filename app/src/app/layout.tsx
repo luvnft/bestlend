@@ -5,7 +5,7 @@ import { Providers } from "./providers";
 const owsald = Oswald({ subsets: ["latin"] });
 
 export const metadata: Metadata = {
-  title: "Bestlend",
+  title: "BESTLEND",
   description: "Get the best rates for your lending position",
 };
 
