@@ -2,6 +2,7 @@ use anchor_lang::prelude::*;
 use anchor_spl::token::{Token, TokenAccount};
 use kamino_lending::{
     cpi::accounts::WithdrawObligationCollateralAndRedeemReserveCollateral, program::KaminoLending,
+    Obligation,
 };
 use solana_program::sysvar;
 
@@ -54,6 +55,13 @@ pub fn process(ctx: Context<KlendWithdraw>, amount: u64) -> Result<()> {
         amount,
     )?;
 
+    let current_value = ctx
+        .accounts
+        .bestlend_user_account
+        .account_value(ctx.accounts.obligation.load()?, ctx.remaining_accounts)?;
+
+    msg!("current value: {}", current_value);
+
     Ok(())
 }
 
@@ -87,7 +95,7 @@ pub struct KlendWithdraw<'info> {
     pub klend_program: Program<'info, KaminoLending>,
     /// CHECK: devnet demo
     #[account(mut)]
-    pub obligation: AccountInfo<'info>,
+    pub obligation: AccountLoader<'info, Obligation>,
     /// CHECK: devnet demo
     pub lending_market: AccountInfo<'info>,
     #[account(mut)]

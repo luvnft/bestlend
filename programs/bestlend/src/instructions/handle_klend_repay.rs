@@ -1,6 +1,6 @@
 use anchor_lang::prelude::*;
 use anchor_spl::token::{self, Token, TokenAccount};
-use kamino_lending::{cpi::accounts::RepayObligationLiquidity, program::KaminoLending};
+use kamino_lending::{cpi::accounts::RepayObligationLiquidity, program::KaminoLending, Obligation};
 
 use crate::{state::BestLendUserAccount, utils::consts::PERFORMER_PUBKEY};
 
@@ -55,6 +55,13 @@ pub fn process(ctx: Context<KlendRepay>, amount: u64) -> Result<()> {
         amount,
     )?;
 
+    let current_value = ctx
+        .accounts
+        .bestlend_user_account
+        .account_value(ctx.accounts.obligation.load()?, ctx.remaining_accounts)?;
+
+    msg!("current value: {}", current_value);
+
     Ok(())
 }
 
@@ -91,7 +98,7 @@ pub struct KlendRepay<'info> {
     pub klend_program: Program<'info, KaminoLending>,
     /// CHECK: devnet demo
     #[account(mut)]
-    pub obligation: AccountInfo<'info>,
+    pub obligation: AccountLoader<'info, Obligation>,
     /// CHECK: devnet demo
     pub lending_market: AccountInfo<'info>,
     #[account(mut)]
