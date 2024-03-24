@@ -5,6 +5,7 @@ import {
   Keypair,
   SystemProgram,
   PublicKey,
+  AddressLookupTableProgram,
 } from "@solana/web3.js";
 import fs from "fs";
 import { keys } from "../keys";
@@ -13,12 +14,22 @@ import { ShyftSdk, Network } from "@shyft-to/js";
 import { createWritePythPriceInstruction } from "../clients/mock-pyth/src";
 import {
   PROGRAM_ID as KLEND_PROGRAM_ID,
+  Reserve,
   createInitLendingMarketInstruction,
   createInitReserveInstruction,
+  createRefreshObligationInstruction,
   createRefreshReserveInstruction,
   createUpdateEntireReserveConfigInstruction,
 } from "../clients/klend/src";
 import { getReserveConfig } from "../tests/configs";
+import {
+  PROGRAM_ID,
+  createInitAccountInstruction,
+  createInitKlendAccountInstruction,
+  createKlendDepositInstruction,
+} from "../clients/bestlend/src";
+import { getOrCreateAssociatedTokenAccount } from "@solana/spl-token";
+import { mintTo } from "@solana/spl-token";
 
 const defaultKeypairLocation = "/home/sc4recoin/.config/solana/id.json";
 const ASSETS = ["USDC", "USDT", "SOL", "JitoSOL", "mSOL", "bSOL"];
@@ -127,7 +138,10 @@ cli
   .action(async (ticker) => {
     const wallet = loadKeypair(defaultKeypairLocation);
     const lendingMarket = keyPairFromB58(keys.lendingMarket);
-    const mint = keyPairFromB58(keys.mints[ticker]);
+    const mintKey =
+      ticker !== "SOL"
+        ? keyPairFromB58(keys.mints[ticker]).publicKey
+        : new PublicKey("So11111111111111111111111111111111111111112");
     const reserve = keyPairFromB58(keys.reserves[ticker]);
 
     const minBalance = await shyft.connection.getMinimumBalanceForRentExemption(
@@ -147,7 +161,6 @@ cli
       reserve,
     ]);
     console.log({ signature });
-    await sleep(10000);
 
     const [lendingMarketAuthority] = PublicKey.findProgramAddressSync(
       [Buffer.from("lma"), lendingMarket.publicKey.toBuffer()],
@@ -158,7 +171,7 @@ cli
       [
         Buffer.from("fee_receiver"),
         lendingMarket.publicKey.toBuffer(),
-        mint.publicKey.toBuffer(),
+        mintKey.toBuffer(),
       ],
       KLEND_PROGRAM_ID
     );
@@ -166,7 +179,7 @@ cli
       [
         Buffer.from("reserve_liq_supply"),
         lendingMarket.publicKey.toBuffer(),
-        mint.publicKey.toBuffer(),
+        mintKey.toBuffer(),
       ],
       KLEND_PROGRAM_ID
     );
@@ -174,7 +187,7 @@ cli
       [
         Buffer.from("reserve_coll_mint"),
         lendingMarket.publicKey.toBuffer(),
-        mint.publicKey.toBuffer(),
+        mintKey.toBuffer(),
       ],
       KLEND_PROGRAM_ID
     );
@@ -182,7 +195,7 @@ cli
       [
         Buffer.from("reserve_coll_supply"),
         lendingMarket.publicKey.toBuffer(),
-        mint.publicKey.toBuffer(),
+        mintKey.toBuffer(),
       ],
       KLEND_PROGRAM_ID
     );
@@ -193,7 +206,7 @@ cli
         lendingMarket: lendingMarket.publicKey,
         lendingMarketAuthority,
         reserve: reserve.publicKey,
-        reserveLiquidityMint: mint.publicKey,
+        reserveLiquidityMint: mintKey,
         feeReceiver,
         reserveLiquiditySupply,
         reserveCollateralMint,
@@ -260,6 +273,197 @@ cli
     let signature = await shyft.connection.sendTransaction(tx, [wallet]);
     console.log({ signature, ticker });
   });
+
+cli.command("mintTokens").action(async () => {
+  const wallet = loadKeypair(defaultKeypairLocation);
+  const userKeys = Object.values(keys.users);
+
+  const mints = {
+    USDC: "G1oSn38tx54RsruDY68as9PsPAryKYh63q6g29JJ5AmJ",
+    USDT: "5CWwsNUwCNkz2d8VFLQ6FdJGAxjjJEY1EEjSBArHjVKn",
+    SOL: "So11111111111111111111111111111111111111112",
+    JitoSOL: "hnfoBeesFnbNQupjFpE8MSS2LpJ3zGeqEkmfPYqwXV1",
+    mSOL: "DHEiD7eew9gnaRujuEM5PR9SbvKdhSoS91dRJm7rKYMS",
+    bSOL: "Hck546Ds2XdnqLYfR2Mp7N4vbFtMecF3sgHVFZ2s9yYc",
+  };
+
+  for (let i = 0; i < userKeys.length; i++) {
+    const user = keyPairFromB58(userKeys[i]);
+    const ticker = ASSETS[i];
+    const mint = new PublicKey(mints[ticker]);
+
+    console.log(`minting for ${user.publicKey} (${ticker})`);
+
+    const ata = await getOrCreateAssociatedTokenAccount(
+      shyft.connection,
+      user,
+      mint,
+      user.publicKey
+    );
+
+    await mintTo(
+      shyft.connection,
+      wallet,
+      mint,
+      ata.address,
+      wallet,
+      i < 1 ? 100e9 : 10000e6
+    );
+  }
+});
+
+cli.command("userDeposit").action(async () => {
+  const wallet = loadKeypair(defaultKeypairLocation);
+  const lendingMarket = keyPairFromB58(keys.lendingMarket);
+
+  const i = 0;
+  const createObligation = true;
+
+  const user = keyPairFromB58(keys.users[`${i}`]);
+  console.log(`depositing for user ${user.publicKey.toBase58()}`);
+
+  const reserveKey = keyPairFromB58(keys.reserves[ASSETS[i]]);
+  const reserve = await Reserve.fromAccountAddress(
+    shyft.connection,
+    reserveKey.publicKey
+  );
+  const oracle = keyPairFromB58(keys.oracles[ASSETS[i]]);
+
+  const [lendingMarketAuthority] = PublicKey.findProgramAddressSync(
+    [Buffer.from("lma"), lendingMarket.publicKey.toBuffer()],
+    KLEND_PROGRAM_ID
+  );
+
+  const [bestlendUserAccount] = PublicKey.findProgramAddressSync(
+    [Buffer.from("bestlend_user_account"), user.publicKey.toBuffer()],
+    PROGRAM_ID
+  );
+
+  const [userMetadata] = PublicKey.findProgramAddressSync(
+    [Buffer.from("user_meta"), bestlendUserAccount.toBuffer()],
+    KLEND_PROGRAM_ID
+  );
+
+  // user account PDA ATAs
+  const collateralAta = await getOrCreateAssociatedTokenAccount(
+    shyft.connection,
+    wallet,
+    reserve.collateral.mintPubkey,
+    bestlendUserAccount,
+    true
+  );
+  const liquidityAta = await getOrCreateAssociatedTokenAccount(
+    shyft.connection,
+    wallet,
+    reserve.liquidity.mintPubkey,
+    bestlendUserAccount,
+    true
+  );
+  const userLiquidityAta = await getOrCreateAssociatedTokenAccount(
+    shyft.connection,
+    wallet,
+    reserve.liquidity.mintPubkey,
+    user.publicKey
+  );
+
+  const [obligation] = PublicKey.findProgramAddressSync(
+    [
+      Uint8Array.from([0]),
+      Uint8Array.from([0]),
+      bestlendUserAccount.toBuffer(),
+      lendingMarket.publicKey.toBuffer(),
+      PublicKey.default.toBuffer(),
+      PublicKey.default.toBuffer(),
+    ],
+    KLEND_PROGRAM_ID
+  );
+
+  const tx = new Transaction();
+
+  if (createObligation) {
+    const recentSlot = await shyft.connection.getSlot("finalized");
+
+    const [lookupTableIx, lookupTableAddress] =
+      AddressLookupTableProgram.createLookupTable({
+        authority: user.publicKey,
+        payer: user.publicKey,
+        recentSlot: recentSlot,
+      });
+
+    tx.add(lookupTableIx);
+
+    tx.add(
+      createInitAccountInstruction(
+        {
+          owner: user.publicKey,
+          bestlendUserAccount,
+        },
+        {
+          collateralGroup: 0,
+          debtGroup: 1,
+          lookupTable: lookupTableAddress,
+        }
+      )
+    );
+
+    tx.add(
+      createInitKlendAccountInstruction({
+        owner: user.publicKey,
+        bestlendUserAccount,
+        obligation,
+        lendingMarket: lendingMarket.publicKey,
+        seed1Account: PublicKey.default,
+        seed2Account: PublicKey.default,
+        userMetadata: userMetadata,
+        klendProgram: KLEND_PROGRAM_ID,
+      })
+    );
+  }
+
+  tx.add(
+    createRefreshReserveInstruction({
+      reserve: reserveKey.publicKey,
+      lendingMarket: lendingMarket.publicKey,
+      pythOracle: oracle.publicKey,
+    })
+  );
+
+  tx.add(
+    createRefreshObligationInstruction({
+      lendingMarket: lendingMarket.publicKey,
+      obligation,
+    })
+  );
+
+  tx.add(
+    createKlendDepositInstruction(
+      {
+        signer: user.publicKey,
+        bestlendUserAccount,
+        obligation,
+        klendProgram: KLEND_PROGRAM_ID,
+        lendingMarket: lendingMarket.publicKey,
+        lendingMarketAuthority,
+        reserve: reserveKey.publicKey,
+        reserveLiquiditySupply: reserve.liquidity.supplyVault,
+        reserveCollateralMint: reserve.collateral.mintPubkey,
+        reserveDestinationDepositCollateral: reserve.collateral.supplyVault,
+        userSourceLiquidity: userLiquidityAta.address,
+        bestlendUserSourceLiquidity: liquidityAta.address,
+        userDestinationCollateral: collateralAta.address,
+        instructionSysvarAccount: new PublicKey(
+          "Sysvar1nstructions1111111111111111111111111"
+        ),
+      },
+      {
+        amount: i > 1 ? 5e9 : 5e6,
+      }
+    )
+  );
+
+  let signature = await shyft.connection.sendTransaction(tx, [wallet, user]);
+  console.log({ signature, targetIndex: i });
+});
 
 const loadKeypair = (filename: string) => {
   const walletKey = JSON.parse(fs.readFileSync(filename, "utf-8"));

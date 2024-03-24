@@ -23,5 +23,6 @@ app.get("/heartbeat", (req: Request, res: Response) => {
 app.get("/klend/market", klendMarket);
 
 app.listen(port, () => {
+  console.log({ env: process.env });
   console.log(`[server]: Server is running at http://localhost:${port}`);
 });

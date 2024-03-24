@@ -20,14 +20,14 @@ pub struct Asset {
 
 pub const STABLES: [Asset; 2] = [
     Asset {
-        mint: pubkey!("HXgjmMGyuVgYwr2NByedRGbv3B5PaC35TVXZz9zC37SH"),
+        mint: pubkey!("G1oSn38tx54RsruDY68as9PsPAryKYh63q6g29JJ5AmJ"),
         asset_group: AssetGroup::STABLE as u8,
         ticker: "USDC",
         oracle: pubkey!("8VpyMotVBQbVXdRPiKgmvftqmLVNayM4ZamEN7YZ2SWi"),
         decimals: 6,
     },
     Asset {
-        mint: pubkey!("7peGn1vW6ayNk3TiWPELBYah8knv8z2RYG7wNGQavXxF"),
+        mint: pubkey!("5CWwsNUwCNkz2d8VFLQ6FdJGAxjjJEY1EEjSBArHjVKn"),
         asset_group: AssetGroup::STABLE as u8,
         ticker: "USDT",
         oracle: pubkey!("DoYnB3k4dfDmh3tgZvUUCsd9548CWBhAJwzyKWiDDj5f"),
@@ -37,28 +37,28 @@ pub const STABLES: [Asset; 2] = [
 
 pub const LSTS: [Asset; 4] = [
     Asset {
-        mint: pubkey!("G56qBhvVSMLXzsFqQ4KjBs72NtQsDwFeRu4pgQYNhnFL"),
+        mint: pubkey!("So11111111111111111111111111111111111111112"),
         asset_group: AssetGroup::LST as u8,
         ticker: "SOL",
         oracle: pubkey!("B74LxjLTd4XDHe2YxC5roQvNmqnPQ5W45afhF2UMCSSU"),
         decimals: 9,
     },
     Asset {
-        mint: pubkey!("9k8GwMpTaDf7HW4q34tjXTwwvcdrkWg4Fp9PFrzZzPYE"),
+        mint: pubkey!("hnfoBeesFnbNQupjFpE8MSS2LpJ3zGeqEkmfPYqwXV1"),
         asset_group: AssetGroup::LST as u8,
         ticker: "JitoSOL",
         oracle: pubkey!("9HhpJ6zCqKA82fUgPrNx4KoQv4WrJQ9UbS7uFSqAxZLt"),
         decimals: 9,
     },
     Asset {
-        mint: pubkey!("5iaHdCKiChezmE3PfP6STbkXJ8mgXNnZzNny16oKBSi8"),
+        mint: pubkey!("DHEiD7eew9gnaRujuEM5PR9SbvKdhSoS91dRJm7rKYMS"),
         asset_group: AssetGroup::LST as u8,
         ticker: "mSOL",
         oracle: pubkey!("5M6UFJbWrpAkddr3tdSaf9egSsEhwZAZRTyLdjcaxp4p"),
         decimals: 9,
     },
     Asset {
-        mint: pubkey!("8jVkW4NZBs5HJdYwJdVsfSuvkMfWTGoTQqfm3m45g5Hh"),
+        mint: pubkey!("Hck546Ds2XdnqLYfR2Mp7N4vbFtMecF3sgHVFZ2s9yYc"),
         asset_group: AssetGroup::LST as u8,
         ticker: "bSOL",
         oracle: pubkey!("FBwd4ar6hQugVXjzX21SABSLXtzoJ5rnyb6bQBkFLyMp"),

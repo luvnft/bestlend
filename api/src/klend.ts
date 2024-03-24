@@ -7,6 +7,7 @@ import { PublicKey } from "@solana/web3.js";
 import { Request, Response } from "express";
 
 const KLEND_MARKET = "EECvYiBQ21Tco5NSVUMHpcfKbkAcAAALDFWpGTUXJEUn";
+const ASSETS = ["USDC", "USDT", "SOL", "JitoSOL", "mSOL", "bSOL"];
 
 const shyft = new ShyftSdk({
   apiKey: process.env.SHYFT_KEY ?? "",
@@ -24,6 +25,11 @@ export const klendMarket = async (req: Request, res: Response) => {
 
   const reserves = [];
   market.reserves.forEach((res, address) => {
+    // ignore irrelevant reserves
+    if (!ASSETS.includes(res.getTokenSymbol())) {
+      return;
+    }
+
     reserves.push({
       address: res.address,
       symbol: res.getTokenSymbol(),

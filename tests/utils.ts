@@ -45,8 +45,7 @@ export const mintToken = async (
       connection,
       owner,
       mint,
-      user,
-      true
+      user
     );
     await mintTo(connection, owner, mint, ata.address, owner, 1e10);
   }

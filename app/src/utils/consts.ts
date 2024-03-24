@@ -3,7 +3,7 @@ import { Asset, AssetGroup, LendingMarket } from "./models";
 
 export const STABLES: Asset[] = [
   {
-    mint: new PublicKey("HXgjmMGyuVgYwr2NByedRGbv3B5PaC35TVXZz9zC37SH"),
+    mint: new PublicKey("G1oSn38tx54RsruDY68as9PsPAryKYh63q6g29JJ5AmJ"),
     asset_group: AssetGroup.STABLE,
     ticker: "USDC",
     oracle: new PublicKey("8VpyMotVBQbVXdRPiKgmvftqmLVNayM4ZamEN7YZ2SWi"),
@@ -11,7 +11,7 @@ export const STABLES: Asset[] = [
     iconURL: "https://assets.coingecko.com/coins/images/6319/standard/usdc.png",
   },
   {
-    mint: new PublicKey("7peGn1vW6ayNk3TiWPELBYah8knv8z2RYG7wNGQavXxF"),
+    mint: new PublicKey("5CWwsNUwCNkz2d8VFLQ6FdJGAxjjJEY1EEjSBArHjVKn"),
     asset_group: AssetGroup.STABLE,
     ticker: "USDT",
     oracle: new PublicKey("DoYnB3k4dfDmh3tgZvUUCsd9548CWBhAJwzyKWiDDj5f"),
@@ -23,7 +23,7 @@ export const STABLES: Asset[] = [
 
 export const LSTS: Asset[] = [
   {
-    mint: new PublicKey("G56qBhvVSMLXzsFqQ4KjBs72NtQsDwFeRu4pgQYNhnFL"),
+    mint: new PublicKey("So11111111111111111111111111111111111111112"),
     asset_group: AssetGroup.LST,
     ticker: "SOL",
     oracle: new PublicKey("B74LxjLTd4XDHe2YxC5roQvNmqnPQ5W45afhF2UMCSSU"),
@@ -32,7 +32,7 @@ export const LSTS: Asset[] = [
       "https://assets.coingecko.com/coins/images/4128/standard/solana.png",
   },
   {
-    mint: new PublicKey("9k8GwMpTaDf7HW4q34tjXTwwvcdrkWg4Fp9PFrzZzPYE"),
+    mint: new PublicKey("hnfoBeesFnbNQupjFpE8MSS2LpJ3zGeqEkmfPYqwXV1"),
     asset_group: AssetGroup.LST,
     ticker: "JTO",
     oracle: new PublicKey("9HhpJ6zCqKA82fUgPrNx4KoQv4WrJQ9UbS7uFSqAxZLt"),
@@ -40,7 +40,7 @@ export const LSTS: Asset[] = [
     iconURL: "https://assets.coingecko.com/coins/images/33228/standard/jto.png",
   },
   {
-    mint: new PublicKey("5iaHdCKiChezmE3PfP6STbkXJ8mgXNnZzNny16oKBSi8"),
+    mint: new PublicKey("DHEiD7eew9gnaRujuEM5PR9SbvKdhSoS91dRJm7rKYMS"),
     asset_group: AssetGroup.LST,
     ticker: "mSOL",
     oracle: new PublicKey("5M6UFJbWrpAkddr3tdSaf9egSsEhwZAZRTyLdjcaxp4p"),
@@ -49,7 +49,7 @@ export const LSTS: Asset[] = [
       "https://assets.coingecko.com/coins/images/17752/standard/mSOL.png",
   },
   {
-    mint: new PublicKey("8jVkW4NZBs5HJdYwJdVsfSuvkMfWTGoTQqfm3m45g5Hh"),
+    mint: new PublicKey("Hck546Ds2XdnqLYfR2Mp7N4vbFtMecF3sgHVFZ2s9yYc"),
     asset_group: AssetGroup.LST,
     ticker: "bSOL",
     oracle: new PublicKey("FBwd4ar6hQugVXjzX21SABSLXtzoJ5rnyb6bQBkFLyMp"),
@@ -73,20 +73,20 @@ export const PUBKEYS = {
     bSOL: "FBwd4ar6hQugVXjzX21SABSLXtzoJ5rnyb6bQBkFLyMp",
   },
   mints: {
-    USDC: "HXgjmMGyuVgYwr2NByedRGbv3B5PaC35TVXZz9zC37SH",
-    USDT: "7peGn1vW6ayNk3TiWPELBYah8knv8z2RYG7wNGQavXxF",
-    SOL: "G56qBhvVSMLXzsFqQ4KjBs72NtQsDwFeRu4pgQYNhnFL",
-    JitoSOL: "9k8GwMpTaDf7HW4q34tjXTwwvcdrkWg4Fp9PFrzZzPYE",
-    mSOL: "5iaHdCKiChezmE3PfP6STbkXJ8mgXNnZzNny16oKBSi8",
-    bSOL: "8jVkW4NZBs5HJdYwJdVsfSuvkMfWTGoTQqfm3m45g5Hh",
+    USDC: "G1oSn38tx54RsruDY68as9PsPAryKYh63q6g29JJ5AmJ",
+    USDT: "5CWwsNUwCNkz2d8VFLQ6FdJGAxjjJEY1EEjSBArHjVKn",
+    SOL: "So11111111111111111111111111111111111111112",
+    JitoSOL: "hnfoBeesFnbNQupjFpE8MSS2LpJ3zGeqEkmfPYqwXV1",
+    mSOL: "DHEiD7eew9gnaRujuEM5PR9SbvKdhSoS91dRJm7rKYMS",
+    bSOL: "Hck546Ds2XdnqLYfR2Mp7N4vbFtMecF3sgHVFZ2s9yYc",
   },
   reserves: {
-    USDC: "FY7KxqjJpCxrtUJGqzMUooq3hRqZ55sLyQT5ajtmmmAM",
-    USDT: "823zL3Df7BWPYWNAfaWSB37Vo8N3q5iGeJVUtenroQ8K",
-    SOL: "2T75Yu4pETZc9cQWGAVtcMaRdosF1HTC1CxKFzB9vkap",
-    JitoSOL: "D46csfimCRAktqojTPHLoAPf3CXsWiMpnnedREbbKdzQ",
-    mSOL: "9zANAieNCYpaZE9GeFsVhAJSDHgZvGGtKpeHiRGgaChP",
-    bSOL: "6G7UXhFn94RyYKCbfnCPZLaUyv3EVEKgtTgDP6UDqVjH",
+    USDC: "GaCnWqvQSnLRrq2WG7qYDSdy3GZWPj3LDrrPgP6CvKRf",
+    USDT: "2VdhFUZqZ3yKxfT8aXwNXj9g7UpxZ3KegRqRV8d2Bv8V",
+    SOL: "7jeNhz5pQhnewxSrpPhgBDbaJKvzCervsyqm5pKL86UL",
+    JitoSOL: "DhSnsVombww6yFD5MUg91xEP75qyXgDPJnR4faQKonqk",
+    mSOL: "7AZCu3Fwqi5JQT3jve7DWBxgoCGPek2Xcpo4xGxz8BhV",
+    bSOL: "5ddtzRMHNhttv77oBHC3A4RAv4bGHfmdzqW5EmPwXBzw",
   },
   lendingMarket: "EECvYiBQ21Tco5NSVUMHpcfKbkAcAAALDFWpGTUXJEUn",
   performer: "C83QhmGAAA6BAGhVaL7sU5tyBNsQurPMZTuL36a3uM51",
