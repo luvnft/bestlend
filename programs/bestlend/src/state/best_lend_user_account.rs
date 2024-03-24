@@ -29,6 +29,8 @@ impl BestLendUserAccount {
     pub const DEFAULT_PI_BPS: u8 = 10;
 }
 
+const CALCULATE_RESTING_VALUE: bool = false;
+
 impl BestLendUserAccount {
     pub fn account_value(
         &mut self,
@@ -51,42 +53,47 @@ impl BestLendUserAccount {
         }
 
         let mut account_value = dec!(0);
-        for asset in [STABLES.as_slice(), LSTS.as_slice()].concat() {
-            let oracle: Option<&&AccountInfo<'_>> = accounts.get(&asset.oracle);
-            if oracle.is_none() {
-                msg!("Missing oracle account: {}", asset.oracle);
-                return Err(error!(BestLendError::MissingAccount));
+
+        // calculate value of resting assets
+        if CALCULATE_RESTING_VALUE {
+            for asset in [STABLES.as_slice(), LSTS.as_slice()].concat() {
+                let oracle: Option<&&AccountInfo<'_>> = accounts.get(&asset.oracle);
+                if oracle.is_none() {
+                    msg!("Missing oracle account: {}", asset.oracle);
+                    return Err(error!(BestLendError::MissingAccount));
+                }
+
+                let token_act = token_accounts.get(&asset.mint);
+                if token_act.is_none() {
+                    msg!("Missing token account: {}", asset.mint);
+                    return Err(error!(BestLendError::MissingAccount));
+                }
+
+                let price_feed =
+                    load_price_feed_from_account_info(oracle.unwrap()).map_err(|e| {
+                        msg!("Error loading price pyth feed: {:?}", e);
+                        error!(BestLendError::PriceNotValid)
+                    })?;
+
+                let PythPrice {
+                    price: price_int,
+                    expo,
+                    ..
+                } = price_feed.get_price_unchecked();
+
+                if expo > 0 {
+                    msg!("Expected price exponent to be negative: {}", expo);
+                    return Err(error!(BestLendError::PriceNotValid));
+                }
+
+                let price = Decimal::new(price_int, expo.abs() as u32);
+                let tokens = Decimal::new(token_act.unwrap().amount as i64, asset.decimals as u32);
+
+                account_value += price * tokens
             }
 
-            let token_act = token_accounts.get(&asset.mint);
-            if token_act.is_none() {
-                msg!("Missing token account: {}", asset.mint);
-                return Err(error!(BestLendError::MissingAccount));
-            }
-
-            let price_feed = load_price_feed_from_account_info(oracle.unwrap()).map_err(|e| {
-                msg!("Error loading price pyth feed: {:?}", e);
-                error!(BestLendError::PriceNotValid)
-            })?;
-
-            let PythPrice {
-                price: price_int,
-                expo,
-                ..
-            } = price_feed.get_price_unchecked();
-
-            if expo > 0 {
-                msg!("Expected price exponent to be negative: {}", expo);
-                return Err(error!(BestLendError::PriceNotValid));
-            }
-
-            let price = Decimal::new(price_int, expo.abs() as u32);
-            let tokens = Decimal::new(token_act.unwrap().amount as i64, asset.decimals as u32);
-
-            account_value += price * tokens
+            msg!("resting assets value: {}", account_value);
         }
-
-        msg!("resting assets value: {}", account_value);
 
         // establish value of klend position
         {
