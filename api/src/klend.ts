@@ -30,15 +30,19 @@ export const klendMarket = async (req: Request, res: Response) => {
       return;
     }
 
+    const dec = res.state.liquidity.mintDecimals.toNumber();
+    const mult = 10 ** dec;
+
     reserves.push({
       address: res.address,
       symbol: res.getTokenSymbol(),
-      available: res.getLiquidityAvailableAmount(),
+      available: res.getLiquidityAvailableAmount().div(mult),
       marketPrice: res.getOracleMarketPrice(),
       depositTvl: res.getDepositTvl(),
       borrowedTvl: res.getBorrowTvl(),
       supplyAPR: res.calculateSupplyAPR(),
       borrowAPR: res.calculateBorrowAPR(),
+      mint: res.getLiquidityMint(),
     });
   });
 

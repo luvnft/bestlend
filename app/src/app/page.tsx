@@ -3,6 +3,7 @@
 import InitAccount from "@/components/initAccount";
 import NavBar from "@/components/navbar";
 import Reserve from "@/components/reserve";
+import { getKlendReserves } from "@/requests/backend";
 import { LSTS, STABLES } from "@/utils/consts";
 import { Asset, LendingMarket } from "@/utils/models";
 import {
@@ -12,9 +13,14 @@ import {
   CardHeader,
   Heading,
   Stack,
-  StackDivider,
+  Table,
+  TableContainer,
+  Tbody,
+  Th,
+  Thead,
+  Tr,
 } from "@chakra-ui/react";
-import { useConnection, useWallet } from "@solana/wallet-adapter-react";
+import { useQuery } from "react-query";
 
 const groups: [string, Asset[]][] = [
   ["Stables", STABLES],
@@ -22,8 +28,8 @@ const groups: [string, Asset[]][] = [
 ];
 
 export default function Home() {
-  const { publicKey } = useWallet();
-  const { connection } = useConnection();
+  const reservesQuery = useQuery("getKlendReserves", () => getKlendReserves());
+  const reserves = reservesQuery.data ?? [];
 
   return (
     <Box>
@@ -36,20 +42,30 @@ export default function Home() {
               <CardHeader>
                 <Heading size="md">{group}</Heading>
               </CardHeader>
-              <Stack
-                spacing="1rem"
-                divider={
-                  <StackDivider borderColor="owalaOrange" borderWidth="2px" />
-                }
-              >
-                {assets.map((s) => (
-                  <Reserve
-                    key={s.mint.toBase58()}
-                    asset={s}
-                    lendingMarket={LendingMarket.KAMINO}
-                  />
-                ))}
-              </Stack>
+              <TableContainer>
+                <Table variant="simple">
+                  <Thead>
+                    <Tr>
+                      <Th></Th>
+                      <Th isNumeric>available</Th>
+                      <Th isNumeric>supply</Th>
+                      <Th isNumeric>borrow</Th>
+                    </Tr>
+                  </Thead>
+                  <Tbody>
+                    {assets.map((s) => (
+                      <Reserve
+                        key={s.mint.toBase58()}
+                        asset={s}
+                        lendingMarket={LendingMarket.KAMINO}
+                        reserve={reserves?.find(
+                          (r) => r.mint === s.mint.toBase58()
+                        )}
+                      />
+                    ))}
+                  </Tbody>
+                </Table>
+              </TableContainer>
             </CardBody>
           </Card>
         ))}

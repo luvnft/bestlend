@@ -67,6 +67,21 @@ const baseInputStyle = definePartsStyle({
   },
 });
 
+const tableTheme = {
+  variants: {
+    simple: {
+      th: {
+        borderColor: "owalaOrange",
+        borderWidth: "0 0 2px 0",
+      },
+      td: {
+        borderColor: "owalaOrange",
+        borderWidth: "0 0 2px 0",
+      },
+    },
+  },
+};
+
 const components = {
   Card: defineMultiStyleConfig({ baseStyle: baseCardStyle }),
   Button: defineStyleConfig({
@@ -83,6 +98,7 @@ const components = {
       }),
     },
   }),
+  Table: tableTheme,
   Modal: defineMultiStyleConfig({ baseStyle: baseModalStyle }),
   NumberInput: defineMultiStyleConfig({ baseStyle: baseInputStyle }),
 };

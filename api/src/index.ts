@@ -2,12 +2,15 @@ import dotenv from "dotenv";
 dotenv.config();
 
 import express, { Express, Request, Response } from "express";
+import cors from "cors";
 import { klendMarket } from "./klend";
 
 const REQUEST_TIMEOUT = 10000;
 
 const app: Express = express();
 const port = process.env.PORT || 3000;
+
+app.use(cors());
 
 app.use(function (req, res, next) {
   res.setTimeout(REQUEST_TIMEOUT, function () {
@@ -18,6 +21,10 @@ app.use(function (req, res, next) {
 
 app.get("/heartbeat", (req: Request, res: Response) => {
   res.json({ message: "heartbeat" });
+});
+
+app.get("/", (req: Request, res: Response) => {
+  res.json({ message: "app available" });
 });
 
 app.get("/klend/market", klendMarket);
