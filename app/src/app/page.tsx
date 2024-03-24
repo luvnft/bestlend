@@ -1,9 +1,9 @@
 "use client";
 
-import InitAccount from "@/components/initAccount";
 import NavBar from "@/components/navbar";
 import Reserve from "@/components/reserve";
 import { getKlendReserves } from "@/requests/backend";
+import { getBestLendAccount } from "@/requests/bestlend";
 import { LSTS, STABLES } from "@/utils/consts";
 import { Asset, LendingMarket } from "@/utils/models";
 import {
@@ -12,6 +12,7 @@ import {
   CardBody,
   CardHeader,
   Heading,
+  Progress,
   Stack,
   Table,
   TableContainer,
@@ -20,6 +21,7 @@ import {
   Thead,
   Tr,
 } from "@chakra-ui/react";
+import { useWallet, useConnection } from "@solana/wallet-adapter-react";
 import { useQuery } from "react-query";
 
 const groups: [string, Asset[]][] = [
@@ -28,14 +30,26 @@ const groups: [string, Asset[]][] = [
 ];
 
 export default function Home() {
+  const { publicKey } = useWallet();
+  const { connection } = useConnection();
+
   const reservesQuery = useQuery("getKlendReserves", () => getKlendReserves());
   const reserves = reservesQuery.data ?? [];
+
+  const bestlendAccount = useQuery(
+    "bestlendAccount",
+    () => getBestLendAccount(connection, publicKey),
+    { enabled: !!publicKey }
+  );
+
+  const isInitialized = bestlendAccount.data?.collateralGroup !== undefined;
+  const isLoading = bestlendAccount.isLoading || reservesQuery.isLoading;
 
   return (
     <Box>
       <NavBar />
       <Stack p="1rem" spacing="1rem">
-        <InitAccount />
+        {/* <InitAccount /> */}
         {groups.map(([group, assets]) => (
           <Card key={group}>
             <CardBody>
@@ -50,6 +64,7 @@ export default function Home() {
                       <Th isNumeric>available</Th>
                       <Th isNumeric>supply</Th>
                       <Th isNumeric>borrow</Th>
+                      <Th></Th>
                     </Tr>
                   </Thead>
                   <Tbody>
@@ -67,6 +82,15 @@ export default function Home() {
                 </Table>
               </TableContainer>
             </CardBody>
+            {isLoading && (
+              <Progress
+                size="xs"
+                isIndeterminate
+                colorScheme="orange"
+                bg="owalaBeige"
+                mx="4px"
+              />
+            )}
           </Card>
         ))}
       </Stack>

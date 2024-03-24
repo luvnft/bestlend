@@ -65,15 +65,17 @@ const InitAccount = () => {
     borrowAmount > depositAmount;
 
   // account already exists, not need to show onboarding flow
-  if (!bestlendAccount.isError && bestlendAccount.isFetched) {
+  if (!bestlendAccount.isError && !bestlendAccount.isLoading && !!publicKey) {
     return null;
   }
 
   return (
     <Center>
-      <Card w="50%" my="4rem">
+      <Card w={{ base: "100%", md: "600px" }} my="4rem">
         <CardHeader>
-          <Heading size="md">Create Account</Heading>
+          <Heading size="md">
+            {!publicKey ? "Connect Wallet" : "Create Account"}
+          </Heading>
         </CardHeader>
         <CardBody>
           <Stack

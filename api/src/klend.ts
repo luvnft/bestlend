@@ -1,20 +1,11 @@
-import {
-  KaminoMarket,
-  KaminoReserve,
-} from "@hubbleprotocol/kamino-lending-sdk";
-import { ShyftSdk, Network } from "@shyft-to/js";
+import { KaminoMarket } from "@hubbleprotocol/kamino-lending-sdk";
 import { PublicKey } from "@solana/web3.js";
-import { Request, Response } from "express";
+import { shyft } from "./connection";
 
 const KLEND_MARKET = "EECvYiBQ21Tco5NSVUMHpcfKbkAcAAALDFWpGTUXJEUn";
 const ASSETS = ["USDC", "USDT", "SOL", "JitoSOL", "mSOL", "bSOL"];
 
-const shyft = new ShyftSdk({
-  apiKey: process.env.SHYFT_KEY ?? "",
-  network: Network.Devnet,
-});
-
-export const klendMarket = async (req: Request, res: Response) => {
+export const klendMarket = async (req, res) => {
   const market = await KaminoMarket.load(
     shyft.connection,
     new PublicKey(KLEND_MARKET),
@@ -46,5 +37,5 @@ export const klendMarket = async (req: Request, res: Response) => {
     });
   });
 
-  res.json({ reserves });
+  return { reserves };
 };

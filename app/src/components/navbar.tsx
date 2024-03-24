@@ -10,6 +10,9 @@ const NavBar = () => {
       <Box fontSize="3xl" fontWeight="bold" className={font.className}>
         BESTLEND
       </Box>
+      <Box color="owalaOrange" fontSize="lg" ml="-7px" mt="8px">
+        &#9679;
+      </Box>
       <Spacer />
       <Wallet />
     </HStack>

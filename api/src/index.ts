@@ -1,35 +1,38 @@
 import dotenv from "dotenv";
 dotenv.config();
 
-import express, { Express, Request, Response } from "express";
-import cors from "cors";
 import { klendMarket } from "./klend";
+import { createAccount } from "./tx";
+import Fastify from "fastify";
+import cors from "@fastify/cors";
+import { bestlendStats } from "./bestlend";
 
-const REQUEST_TIMEOUT = 10000;
-
-const app: Express = express();
-const port = process.env.PORT || 3000;
-
-app.use(cors());
-
-app.use(function (req, res, next) {
-  res.setTimeout(REQUEST_TIMEOUT, function () {
-    return res.status(500).json({ message: "request timeout" });
-  });
-  next();
+const fastify = Fastify({
+  logger: true,
+  requestTimeout: 10_000,
 });
 
-app.get("/heartbeat", (req: Request, res: Response) => {
-  res.json({ message: "heartbeat" });
+fastify.register(cors);
+
+const PORT = parseInt(process.env.PORT) || 3000;
+
+fastify.get("/heartbeat", (req, res) => {
+  return { message: "heartbeat" };
 });
 
-app.get("/", (req: Request, res: Response) => {
-  res.json({ message: "app available" });
+fastify.get("/", (req, res) => {
+  return { message: "app available" };
 });
 
-app.get("/klend/market", klendMarket);
+fastify.get("/klend/market", klendMarket);
 
-app.listen(port, () => {
-  console.log({ env: process.env });
-  console.log(`[server]: Server is running at http://localhost:${port}`);
+fastify.get("/bestlend/stats", bestlendStats);
+
+fastify.post("/txs/init", createAccount);
+
+fastify.listen({ port: PORT }, (err) => {
+  if (err) {
+    fastify.log.error(err);
+    process.exit(1);
+  }
 });
