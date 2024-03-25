@@ -30,7 +30,7 @@ fastify.get("/bestlend/stats", bestlendStats);
 
 fastify.post("/txs/deposit", deposit);
 
-fastify.listen({ port: PORT }, (err) => {
+fastify.listen({ port: PORT, host: "0.0.0.0" }, (err) => {
   if (err) {
     fastify.log.error(err);
     process.exit(1);

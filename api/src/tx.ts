@@ -27,7 +27,7 @@ import {
   TokenAccountNotFoundError,
   TokenInvalidAccountOwnerError,
   createSyncNativeInstruction,
-} from "../node_modules/@solana/spl-token";
+} from "@solana/spl-token";
 
 const LENDING_MARKET = new PublicKey(
   "EECvYiBQ21Tco5NSVUMHpcfKbkAcAAALDFWpGTUXJEUn"
