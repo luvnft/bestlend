@@ -2,6 +2,7 @@ import {
   AddressLookupTableProgram,
   Connection,
   PublicKey,
+  SystemProgram,
   Transaction,
   TransactionInstruction,
 } from "@solana/web3.js";
@@ -16,11 +17,8 @@ import {
 import {
   PROGRAM_ID as KLEND_PROGRAM_ID,
   Reserve,
-  createInitLendingMarketInstruction,
-  createInitReserveInstruction,
   createRefreshObligationInstruction,
   createRefreshReserveInstruction,
-  createUpdateEntireReserveConfigInstruction,
 } from "../../clients/klend/src";
 import {
   getAssociatedTokenAddressSync,
@@ -28,7 +26,8 @@ import {
   createAssociatedTokenAccountInstruction,
   TokenAccountNotFoundError,
   TokenInvalidAccountOwnerError,
-} from "@solana/spl-token";
+  createSyncNativeInstruction,
+} from "../node_modules/@solana/spl-token";
 
 const LENDING_MARKET = new PublicKey(
   "EECvYiBQ21Tco5NSVUMHpcfKbkAcAAALDFWpGTUXJEUn"
@@ -115,6 +114,18 @@ export const deposit = async (req, res) => {
   if (ix2) tx.add(ix2);
   if (ix3) tx.add(ix3);
 
+  // maybe wrap
+  if (ticker === "SOL") {
+    tx.add(
+      SystemProgram.transfer({
+        fromPubkey: user,
+        toPubkey: userLiquidityAta,
+        lamports: amount,
+      }),
+      createSyncNativeInstruction(userLiquidityAta)
+    );
+  }
+
   tx.add(
     createRefreshReserveInstruction({
       reserve: reserve,
@@ -139,7 +150,7 @@ export const deposit = async (req, res) => {
         klendProgram: KLEND_PROGRAM_ID,
         lendingMarket: LENDING_MARKET,
         lendingMarketAuthority,
-        reserve: reserveKey.publicKey,
+        reserve: reserve,
         reserveLiquiditySupply: reserveData.liquidity.supplyVault,
         reserveCollateralMint: reserveData.collateral.mintPubkey,
         reserveDestinationDepositCollateral: reserveData.collateral.supplyVault,
@@ -160,7 +171,7 @@ export const deposit = async (req, res) => {
   tx.recentBlockhash = latest.blockhash;
   tx.feePayer = user;
 
-  return { tx: tx.serializeMessage() };
+  return { tx: tx.serialize({ verifySignatures: false }).toString("base64") };
 };
 
 export const createAccountIxs = async (user: PublicKey) => {

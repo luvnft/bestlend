@@ -20,7 +20,7 @@ import { PublicKey } from "@solana/web3.js";
 import { useEffect, useState } from "react";
 import { useQueryClient } from "react-query";
 
-const WalletSelect = () => {
+const WalletSelect = ({ small }: { small?: boolean }) => {
   const { isOpen, onOpen, onClose } = useDisclosure();
   const { select, wallets, publicKey, disconnect, connect } = useWallet();
   const queryClient = useQueryClient();
@@ -97,7 +97,11 @@ const WalletSelect = () => {
   return (
     <>
       {!publicKey ? (
-        <Button onClick={!!selectedWallet ? connect : onOpen} w="140px">
+        <Button
+          onClick={!!selectedWallet ? connect : onOpen}
+          w="140px"
+          size={small ? "sm" : "md"}
+        >
           Connect Wallet
         </Button>
       ) : (

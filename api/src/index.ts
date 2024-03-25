@@ -2,7 +2,7 @@ import dotenv from "dotenv";
 dotenv.config();
 
 import { klendMarket } from "./klend";
-import { createAccount } from "./tx";
+import { deposit } from "./tx";
 import Fastify from "fastify";
 import cors from "@fastify/cors";
 import { bestlendStats } from "./bestlend";
@@ -28,7 +28,7 @@ fastify.get("/klend/market", klendMarket);
 
 fastify.get("/bestlend/stats", bestlendStats);
 
-fastify.post("/txs/init", createAccount);
+fastify.post("/txs/deposit", deposit);
 
 fastify.listen({ port: PORT }, (err) => {
   if (err) {

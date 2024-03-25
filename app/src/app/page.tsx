@@ -42,14 +42,13 @@ export default function Home() {
     { enabled: !!publicKey }
   );
 
-  const isInitialized = bestlendAccount.data?.collateralGroup !== undefined;
-  const isLoading = bestlendAccount.isLoading || reservesQuery.isLoading;
+  const isLoading =
+    (!bestlendAccount.isFetched && !!publicKey) || !reservesQuery.isFetched;
 
   return (
     <Box>
       <NavBar />
       <Stack p="1rem" spacing="1rem">
-        {/* <InitAccount /> */}
         {groups.map(([group, assets]) => (
           <Card key={group}>
             <CardBody>

@@ -28,8 +28,10 @@ import {
   createInitKlendAccountInstruction,
   createKlendDepositInstruction,
 } from "../clients/bestlend/src";
-import { getOrCreateAssociatedTokenAccount } from "@solana/spl-token";
-import { mintTo } from "@solana/spl-token";
+import {
+  getOrCreateAssociatedTokenAccount,
+  mintTo,
+} from "../node_modules/@solana/spl-token";
 
 const defaultKeypairLocation = "/home/sc4recoin/.config/solana/id.json";
 const ASSETS = ["USDC", "USDT", "SOL", "JitoSOL", "mSOL", "bSOL"];
