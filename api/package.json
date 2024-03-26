@@ -7,14 +7,13 @@
     "build": "tsc",
     "start": "node dist/api/src/index.js",
     "dev": "nodemon src/index.ts",
-    "deploy": "fly deploy"
+    "deploy": "yarn build && fly deploy"
   },
   "dependencies": {
     "@fastify/cors": "^9.0.1",
     "@hubbleprotocol/kamino-lending-sdk": "^2.9.11",
     "@metaplex-foundation/beet": "^0.7.2",
     "@metaplex-foundation/beet-solana": "^0.4.1",
-    "@shyft-to/js": "^0.2.36",
     "@solana/spl-token": "^0.4.3",
     "decimal.js": "^10.4.3",
     "dotenv": "^16.4.5",

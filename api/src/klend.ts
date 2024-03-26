@@ -1,15 +1,16 @@
 import { KaminoMarket } from "@hubbleprotocol/kamino-lending-sdk";
 import { PublicKey } from "@solana/web3.js";
-import { shyft } from "./connection";
+import { PROGRAM_ID as KLEND_PROGRAM_ID } from "../../clients/klend/src";
+import { connection } from "./rpc";
 
 const KLEND_MARKET = "EECvYiBQ21Tco5NSVUMHpcfKbkAcAAALDFWpGTUXJEUn";
 const ASSETS = ["USDC", "USDT", "SOL", "JitoSOL", "mSOL", "bSOL"];
 
 export const klendMarket = async (req, res) => {
   const market = await KaminoMarket.load(
-    shyft.connection,
+    connection,
     new PublicKey(KLEND_MARKET),
-    new PublicKey("HUHJsverovPJN3sVtv8J8D48fKzeajRtz3Ga4Zmh4RLA")
+    KLEND_PROGRAM_ID
   );
 
   await market.loadReserves();

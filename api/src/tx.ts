@@ -6,7 +6,6 @@ import {
   Transaction,
   TransactionInstruction,
 } from "@solana/web3.js";
-import { shyft } from "./connection";
 import {
   BestLendUserAccount,
   PROGRAM_ID,
@@ -28,6 +27,7 @@ import {
   TokenInvalidAccountOwnerError,
   createSyncNativeInstruction,
 } from "@solana/spl-token";
+import { connection } from "./rpc";
 
 const LENDING_MARKET = new PublicKey(
   "EECvYiBQ21Tco5NSVUMHpcfKbkAcAAALDFWpGTUXJEUn"
@@ -56,7 +56,7 @@ export const deposit = async (req, res) => {
 
   try {
     await BestLendUserAccount.fromAccountAddress(
-      shyft.connection,
+      connection,
       bestlendUserAccount
     );
   } catch (e) {
@@ -70,10 +70,7 @@ export const deposit = async (req, res) => {
     KLEND_PROGRAM_ID
   );
 
-  const reserveData = await Reserve.fromAccountAddress(
-    shyft.connection,
-    reserve
-  );
+  const reserveData = await Reserve.fromAccountAddress(connection, reserve);
 
   const [obligation] = PublicKey.findProgramAddressSync(
     [
@@ -89,21 +86,21 @@ export const deposit = async (req, res) => {
 
   // user account / PDA ATAs
   const [collateralAta, ix1] = await getOrCreateAssociatedTokenAccount(
-    shyft.connection,
+    connection,
     user,
     reserveData.collateral.mintPubkey,
     bestlendUserAccount,
     true
   );
   const [liquidityAta, ix2] = await getOrCreateAssociatedTokenAccount(
-    shyft.connection,
+    connection,
     user,
     reserveData.liquidity.mintPubkey,
     bestlendUserAccount,
     true
   );
   const [userLiquidityAta, ix3] = await getOrCreateAssociatedTokenAccount(
-    shyft.connection,
+    connection,
     user,
     reserveData.liquidity.mintPubkey,
     user
@@ -167,7 +164,7 @@ export const deposit = async (req, res) => {
     )
   );
 
-  const latest = await shyft.connection.getLatestBlockhash();
+  const latest = await connection.getLatestBlockhash();
   tx.recentBlockhash = latest.blockhash;
   tx.feePayer = user;
 
@@ -181,7 +178,7 @@ export const createAccountIxs = async (user: PublicKey) => {
     AddressLookupTableProgram.createLookupTable({
       authority: user,
       payer: user,
-      recentSlot: await shyft.connection.getSlot("finalized"),
+      recentSlot: await connection.getSlot("finalized"),
     });
 
   ixs.push(lookupTableIx);

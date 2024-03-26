@@ -1,5 +1,5 @@
+import { connection } from "./rpc";
 import { BestLendUserAccount, PROGRAM_ID } from "../../clients/bestlend/src";
-import { shyft } from "./connection";
 import * as beet from "@metaplex-foundation/beet";
 
 const toNumber = (value: beet.bignum): number => {
@@ -14,7 +14,7 @@ export const bestlendStats = async (req, res) => {
     },
   ];
 
-  const accounts = await shyft.connection.getProgramAccounts(PROGRAM_ID, {
+  const accounts = await connection.getProgramAccounts(PROGRAM_ID, {
     filters,
   });
 

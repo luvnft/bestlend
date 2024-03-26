@@ -7,10 +7,6 @@ import {
   Flex,
   HStack,
   Image,
-  Menu,
-  MenuButton,
-  MenuItem,
-  MenuList,
   Modal,
   ModalBody,
   ModalCloseButton,
@@ -29,7 +25,7 @@ import {
 } from "@chakra-ui/react";
 import { useConnection, useWallet } from "@solana/wallet-adapter-react";
 import Wallet from "./wallet";
-import { useGetTokenBalances } from "@/requests/shyft";
+import { useGetTokenBalances } from "@/requests/rpc";
 import { useState } from "react";
 import { useMutation } from "react-query";
 
@@ -57,7 +53,7 @@ const Reserve = ({ asset, lendingMarket, reserve }: Props) => {
 
   const { tokenBalances } = useGetTokenBalances();
   const balance = tokenBalances?.find(
-    (bal) => bal.internal.mint.toBase58() === reserve?.mint
+    (bal) => bal.mint.toBase58() === reserve?.mint
   );
 
   const [amount, setAmount] = useState(0);

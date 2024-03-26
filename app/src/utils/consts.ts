@@ -63,6 +63,10 @@ export const ASSETS = Object.fromEntries(
   [...STABLES, ...LSTS].map((asset) => [asset.ticker, asset])
 );
 
+export const ASSETS_MINTS = Object.fromEntries(
+  [...STABLES, ...LSTS].map((asset) => [asset.mint, asset])
+);
+
 export const PUBKEYS = {
   oracles: {
     USDC: "8VpyMotVBQbVXdRPiKgmvftqmLVNayM4ZamEN7YZ2SWi",
