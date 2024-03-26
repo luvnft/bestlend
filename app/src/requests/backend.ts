@@ -1,3 +1,4 @@
+import { ASSETS_MINTS } from "@/utils/consts";
 import { PublicKey, Transaction } from "@solana/web3.js";
 import axios from "axios";
 
@@ -35,4 +36,48 @@ export const getDepositTx = async (
     ticker,
   });
   return Transaction.from(Buffer.from(data?.tx, "base64"));
+};
+
+type Position = {
+  reserveAddress: PublicKey;
+  mint: PublicKey;
+  amount: number;
+  amountBase: number;
+  marketValue: number;
+};
+
+export type KlendObligation = {
+  borrows: Position[];
+  deposits: Position[];
+  ltv: number;
+  value: number;
+  pda: PublicKey;
+};
+
+export const getObligation = async (
+  user: PublicKey
+): Promise<KlendObligation> => {
+  const { data } = await axiosInstance.get(
+    `/klend/obligation?pubkey=${user.toBase58()}`
+  );
+  const obligation = data?.obligation ?? {};
+  return {
+    borrows: obligation.borrows?.map((b: any) => ({
+      reserveAddress: new PublicKey(b.reserveAddress),
+      mint: new PublicKey(b.mintAddress),
+      amountBase: parseFloat(b.amount),
+      amount: parseFloat(b.amount) / 10 ** ASSETS_MINTS[b.mintAddress].decimals,
+      marketValue: parseFloat(b.marketValueRefreshed),
+    })),
+    deposits: obligation.deposits?.map((b: any) => ({
+      reserveAddress: new PublicKey(b.reserveAddress),
+      mint: new PublicKey(b.mintAddress),
+      amountBase: parseFloat(b.amount),
+      amount: parseFloat(b.amount) / 10 ** ASSETS_MINTS[b.mintAddress].decimals,
+      marketValue: parseFloat(b.marketValueRefreshed),
+    })),
+    ltv: parseFloat(obligation?.ltv),
+    value: parseFloat(obligation?.ltv),
+    pda: new PublicKey(obligation?.pda),
+  };
 };

@@ -64,7 +64,7 @@ export const ASSETS = Object.fromEntries(
 );
 
 export const ASSETS_MINTS = Object.fromEntries(
-  [...STABLES, ...LSTS].map((asset) => [asset.mint, asset])
+  [...STABLES, ...LSTS].map((asset) => [asset.mint.toBase58(), asset])
 );
 
 export const PUBKEYS = {

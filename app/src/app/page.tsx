@@ -2,10 +2,10 @@
 
 import NavBar from "@/components/navbar";
 import Reserve from "@/components/reserve";
-import { getKlendReserves } from "@/requests/backend";
+import { getKlendReserves, getObligation } from "@/requests/backend";
 import { getBestLendAccount } from "@/requests/bestlend";
 import { LSTS, STABLES } from "@/utils/consts";
-import { Asset, LendingMarket } from "@/utils/models";
+import { Asset, AssetGroup, LendingMarket } from "@/utils/models";
 import {
   Box,
   Card,
@@ -45,6 +45,14 @@ export default function Home() {
   const isLoading =
     (!bestlendAccount.isFetched && !!publicKey) || !reservesQuery.isFetched;
 
+  // const depositGroup = !bestlendAccount.data?.collateralGroup
+  //   ? AssetGroup.STABLE
+  //   : AssetGroup.LST;
+
+  const depositGroup = !bestlendAccount.data?.collateralGroup
+    ? AssetGroup.LST
+    : AssetGroup.STABLE;
+
   return (
     <Box>
       <NavBar />
@@ -63,6 +71,7 @@ export default function Home() {
                       <Th isNumeric>available</Th>
                       <Th isNumeric>supply</Th>
                       <Th isNumeric>borrow</Th>
+                      <Th isNumeric>position</Th>
                       <Th></Th>
                     </Tr>
                   </Thead>
@@ -72,6 +81,7 @@ export default function Home() {
                         key={s.mint.toBase58()}
                         asset={s}
                         lendingMarket={LendingMarket.KAMINO}
+                        depositGroup={depositGroup}
                         reserve={reserves?.find(
                           (r) => r.mint === s.mint.toBase58()
                         )}

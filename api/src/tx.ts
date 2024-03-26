@@ -61,7 +61,7 @@ export const deposit = async (req, res) => {
     );
   } catch (e) {
     console.log("error getting bestlend account; adding init ixs: ", e);
-    const ixs = await createAccountIxs(user);
+    const ixs = await createAccountIxs(user, ticker);
     tx.add(...ixs);
   }
 
@@ -171,7 +171,7 @@ export const deposit = async (req, res) => {
   return { tx: tx.serialize({ verifySignatures: false }).toString("base64") };
 };
 
-export const createAccountIxs = async (user: PublicKey) => {
+export const createAccountIxs = async (user: PublicKey, ticker: string) => {
   const ixs: TransactionInstruction[] = [];
 
   const [lookupTableIx, lookupTableAddress] =
@@ -212,8 +212,8 @@ export const createAccountIxs = async (user: PublicKey) => {
         bestlendUserAccount,
       },
       {
-        collateralGroup: 0,
-        debtGroup: 1,
+        collateralGroup: ticker.includes("USD") ? 0 : 1,
+        debtGroup: ticker.includes("USD") ? 1 : 0,
         lookupTable: lookupTableAddress,
       }
     )

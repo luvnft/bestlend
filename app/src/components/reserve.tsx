@@ -1,9 +1,10 @@
-import { KlendReserve, getDepositTx } from "@/requests/backend";
+import { KlendReserve, getDepositTx, getObligation } from "@/requests/backend";
 import { getMarketIcon } from "@/utils/consts";
-import { Asset, LendingMarket } from "@/utils/models";
+import { Asset, AssetGroup, LendingMarket } from "@/utils/models";
 import {
   Box,
   Button,
+  Center,
   Flex,
   HStack,
   Image,
@@ -27,7 +28,7 @@ import { useConnection, useWallet } from "@solana/wallet-adapter-react";
 import Wallet from "./wallet";
 import { useGetTokenBalances } from "@/requests/rpc";
 import { useState } from "react";
-import { useMutation } from "react-query";
+import { useMutation, useQuery } from "react-query";
 
 let fmt = new Intl.NumberFormat("en-US", {
   notation: "compact",
@@ -43,20 +44,33 @@ interface Props {
   asset: Asset;
   lendingMarket: LendingMarket;
   reserve?: KlendReserve;
+  depositGroup: AssetGroup;
 }
 
-const Reserve = ({ asset, lendingMarket, reserve }: Props) => {
+const Reserve = ({ asset, lendingMarket, reserve, depositGroup }: Props) => {
   const { publicKey, sendTransaction } = useWallet();
   const { connection } = useConnection();
   const { isOpen, onOpen, onClose } = useDisclosure();
   const toast = useToast();
+  const [amount, setAmount] = useState(0);
 
   const { tokenBalances } = useGetTokenBalances();
   const balance = tokenBalances?.find(
     (bal) => bal.mint.toBase58() === reserve?.mint
   );
 
-  const [amount, setAmount] = useState(0);
+  const obligation = useQuery(
+    "getObligation",
+    () => getObligation(publicKey!),
+    { enabled: !!publicKey }
+  );
+
+  const position =
+    depositGroup === asset.asset_group
+      ? obligation.data?.deposits?.find((d) => d.mint.equals(asset.mint))
+      : obligation.data?.borrows?.find((d) => d.mint.equals(asset.mint));
+
+  const btnText = depositGroup === asset.asset_group ? "Deposit" : "Borrow";
 
   const txMutation = useMutation({
     mutationFn: () =>
@@ -131,11 +145,17 @@ const Reserve = ({ asset, lendingMarket, reserve }: Props) => {
           <Box>{!reserve ? "-" : fmtPct.format(reserve?.borrowAPR)}</Box>
         </Td>
         <Td isNumeric>
+          <Stack spacing={0}>
+            <Box>{fmt.format(position?.amount ?? 0)}</Box>
+            <Box fontSize="xs">${fmt.format(position?.marketValue ?? 0)}</Box>
+          </Stack>
+        </Td>
+        <Td isNumeric>
           {!publicKey ? (
             <Wallet small />
           ) : (
             <Button size="sm" onClick={onOpen}>
-              Deposit
+              {btnText}
             </Button>
           )}
         </Td>
@@ -143,7 +163,9 @@ const Reserve = ({ asset, lendingMarket, reserve }: Props) => {
       <Modal isOpen={isOpen} onClose={onClose} size="sm">
         <ModalOverlay />
         <ModalContent>
-          <ModalHeader>Deposit {reserve?.symbol}</ModalHeader>
+          <ModalHeader>
+            {btnText} {reserve?.symbol}
+          </ModalHeader>
           <ModalCloseButton />
           <ModalBody>
             <Box>
@@ -167,7 +189,7 @@ const Reserve = ({ asset, lendingMarket, reserve }: Props) => {
               onClick={() => txMutation.mutate()}
               isLoading={txMutation.isLoading}
             >
-              Deposit
+              {btnText}
             </Button>
           </ModalFooter>
         </ModalContent>
@@ -180,15 +202,15 @@ const ValueWithPrice = ({
   value,
   price,
 }: {
-  value?: string;
-  price?: string;
+  value?: string | number;
+  price?: string | number;
 }) => {
   if (!value || !price) {
     return <Box>-</Box>;
   }
 
-  const numValue = parseFloat(value);
-  const numPrice = parseFloat(price);
+  const numValue = typeof value === "number" ? value : parseFloat(value);
+  const numPrice = typeof price === "number" ? price : parseFloat(price);
 
   return (
     <Stack spacing={0}>

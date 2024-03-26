@@ -1,7 +1,7 @@
 import dotenv from "dotenv";
 dotenv.config();
 
-import { klendMarket } from "./klend";
+import { klendMarket, klendObligation } from "./klend";
 import { deposit } from "./tx";
 import Fastify from "fastify";
 import cors from "@fastify/cors";
@@ -25,6 +25,7 @@ fastify.get("/", (req, res) => {
 });
 
 fastify.get("/klend/market", klendMarket);
+fastify.get("/klend/obligation", klendObligation);
 
 fastify.get("/bestlend/stats", bestlendStats);
 
