@@ -81,3 +81,8 @@ export const getObligation = async (
     pda: new PublicKey(obligation?.pda),
   };
 };
+
+export const getStakingRates = async (): Promise<{ [key: string]: string }> => {
+  const { data } = await axiosInstance.get("/bestlend/stakingRates");
+  return data ?? {};
+};

@@ -5,7 +5,7 @@ import { klendMarket, klendObligation } from "./klend";
 import { deposit } from "./tx";
 import Fastify from "fastify";
 import cors from "@fastify/cors";
-import { bestlendStats } from "./bestlend";
+import { bestlendStats, stakingRates } from "./bestlend";
 
 const fastify = Fastify({
   logger: true,
@@ -28,6 +28,7 @@ fastify.get("/klend/market", klendMarket);
 fastify.get("/klend/obligation", klendObligation);
 
 fastify.get("/bestlend/stats", bestlendStats);
+fastify.get("/bestlend/stakingRates", stakingRates);
 
 fastify.post("/txs/deposit", deposit);
 

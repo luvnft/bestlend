@@ -30,3 +30,11 @@ export const bestlendStats = async (req, res) => {
     }, 0),
   };
 };
+
+export const stakingRates = async (req, res) => {
+  return {
+    JTO: "0.0814",
+    mSOL: "0.0805",
+    bSOL: "0.0789",
+  };
+};

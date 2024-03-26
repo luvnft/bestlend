@@ -1,4 +1,9 @@
-import { KlendReserve, getDepositTx, getObligation } from "@/requests/backend";
+import {
+  KlendReserve,
+  getDepositTx,
+  getObligation,
+  getStakingRates,
+} from "@/requests/backend";
 import { getMarketIcon } from "@/utils/consts";
 import { Asset, AssetGroup, LendingMarket } from "@/utils/models";
 import {
@@ -20,10 +25,12 @@ import {
   Spacer,
   Stack,
   Td,
+  Tooltip,
   Tr,
   useDisclosure,
   useToast,
 } from "@chakra-ui/react";
+import { SunIcon } from "@chakra-ui/icons";
 import { useConnection, useWallet } from "@solana/wallet-adapter-react";
 import Wallet from "./wallet";
 import { useGetTokenBalances } from "@/requests/rpc";
@@ -53,6 +60,9 @@ const Reserve = ({ asset, lendingMarket, reserve, depositGroup }: Props) => {
   const { isOpen, onOpen, onClose } = useDisclosure();
   const toast = useToast();
   const [amount, setAmount] = useState(0);
+
+  const ratesQuery = useQuery("stakingRates", () => getStakingRates());
+  const rate = ratesQuery.data?.[asset.ticker];
 
   const { tokenBalances } = useGetTokenBalances();
   const balance = tokenBalances?.find(
@@ -139,7 +149,21 @@ const Reserve = ({ asset, lendingMarket, reserve, depositGroup }: Props) => {
           />
         </Td>
         <Td isNumeric>
-          <Box>{!reserve ? "-" : fmtPct.format(reserve?.supplyAPR)}</Box>
+          {!reserve ? (
+            "-"
+          ) : (
+            <Flex>
+              <Box>{fmtPct.format(reserve?.supplyAPR)}</Box>
+              {rate && (
+                <Tooltip
+                  label={`${fmtPct.format(parseFloat(rate))} staking reward`}
+                  placement="top"
+                >
+                  <SunIcon fontSize="sm" color="owalaOrange" />
+                </Tooltip>
+              )}
+            </Flex>
+          )}
         </Td>
         <Td isNumeric>
           <Box>{!reserve ? "-" : fmtPct.format(reserve?.borrowAPR)}</Box>
