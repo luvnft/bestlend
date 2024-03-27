@@ -34,10 +34,10 @@ export const LSTS: Asset[] = [
   {
     mint: new PublicKey("hnfoBeesFnbNQupjFpE8MSS2LpJ3zGeqEkmfPYqwXV1"),
     asset_group: AssetGroup.LST,
-    ticker: "JTO",
+    ticker: "JitoSOL",
     oracle: new PublicKey("9HhpJ6zCqKA82fUgPrNx4KoQv4WrJQ9UbS7uFSqAxZLt"),
     decimals: 9,
-    iconURL: "https://assets.coingecko.com/coins/images/33228/standard/jto.png",
+    iconURL: "https://s2.coinmarketcap.com/static/img/coins/64x64/22533.png",
   },
   {
     mint: new PublicKey("DHEiD7eew9gnaRujuEM5PR9SbvKdhSoS91dRJm7rKYMS"),

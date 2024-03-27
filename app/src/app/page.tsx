@@ -2,6 +2,7 @@
 
 import NavBar from "@/components/navbar";
 import Reserve from "@/components/reserve";
+import Stats from "@/components/stats";
 import { getKlendReserves, getObligation } from "@/requests/backend";
 import { getBestLendAccount } from "@/requests/bestlend";
 import { LSTS, STABLES } from "@/utils/consts";
@@ -57,6 +58,7 @@ export default function Home() {
     <Box>
       <NavBar />
       <Stack p="1rem" spacing="1rem">
+        <Stats />
         {groups.map(([group, assets]) => (
           <Card key={group}>
             <CardBody>

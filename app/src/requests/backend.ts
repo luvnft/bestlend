@@ -50,7 +50,6 @@ export type KlendObligation = {
   borrows: Position[];
   deposits: Position[];
   ltv: number;
-  value: number;
   pda: PublicKey;
 };
 
@@ -77,7 +76,6 @@ export const getObligation = async (
       marketValue: parseFloat(b.marketValueRefreshed),
     })),
     ltv: parseFloat(obligation?.ltv),
-    value: parseFloat(obligation?.ltv),
     pda: new PublicKey(obligation?.pda),
   };
 };

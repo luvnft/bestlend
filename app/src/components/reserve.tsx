@@ -152,7 +152,7 @@ const Reserve = ({ asset, lendingMarket, reserve, depositGroup }: Props) => {
           {!reserve ? (
             "-"
           ) : (
-            <Flex>
+            <Flex float="right">
               <Box>{fmtPct.format(reserve?.supplyAPR)}</Box>
               {rate && (
                 <Tooltip
