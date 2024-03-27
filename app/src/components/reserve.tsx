@@ -36,16 +36,7 @@ import Wallet from "./wallet";
 import { useGetTokenBalances } from "@/requests/rpc";
 import { useState } from "react";
 import { useMutation, useQuery } from "react-query";
-
-let fmt = new Intl.NumberFormat("en-US", {
-  notation: "compact",
-});
-
-let fmtPct = new Intl.NumberFormat("en-US", {
-  style: "percent",
-  minimumFractionDigits: 2,
-  maximumFractionDigits: 2,
-});
+import { fmtCompact, fmtPct } from "@/utils/fmt";
 
 interface Props {
   asset: Asset;
@@ -170,8 +161,10 @@ const Reserve = ({ asset, lendingMarket, reserve, depositGroup }: Props) => {
         </Td>
         <Td isNumeric>
           <Stack spacing={0}>
-            <Box>{fmt.format(position?.amount ?? 0)}</Box>
-            <Box fontSize="xs">${fmt.format(position?.marketValue ?? 0)}</Box>
+            <Box>{fmtCompact.format(position?.amount ?? 0)}</Box>
+            <Box fontSize="xs">
+              ${fmtCompact.format(position?.marketValue ?? 0)}
+            </Box>
           </Stack>
         </Td>
         <Td isNumeric>
@@ -238,8 +231,8 @@ const ValueWithPrice = ({
 
   return (
     <Stack spacing={0}>
-      <Box>{fmt.format(numValue)}</Box>
-      <Box fontSize="xs">${fmt.format(numPrice * numValue)}</Box>
+      <Box>{fmtCompact.format(numValue)}</Box>
+      <Box fontSize="xs">${fmtCompact.format(numPrice * numValue)}</Box>
     </Stack>
   );
 };

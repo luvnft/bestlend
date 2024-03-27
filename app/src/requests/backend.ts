@@ -51,6 +51,8 @@ export type KlendObligation = {
   deposits: Position[];
   ltv: number;
   pda: PublicKey;
+  nav: number;
+  effectiveAPY: number;
 };
 
 export const getObligation = async (
@@ -77,6 +79,8 @@ export const getObligation = async (
     })),
     ltv: parseFloat(obligation?.ltv),
     pda: new PublicKey(obligation?.pda),
+    nav: parseFloat(obligation?.nav),
+    effectiveAPY: parseFloat(obligation?.effectiveAPY),
   };
 };
 

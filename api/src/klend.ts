@@ -7,6 +7,15 @@ import { PROGRAM_ID } from "../../clients/bestlend/src";
 const KLEND_MARKET = "EECvYiBQ21Tco5NSVUMHpcfKbkAcAAALDFWpGTUXJEUn";
 const ASSETS = ["USDC", "USDT", "SOL", "JitoSOL", "mSOL", "bSOL"];
 
+const MINTS = {
+  G1oSn38tx54RsruDY68as9PsPAryKYh63q6g29JJ5AmJ: "USDC",
+  "5CWwsNUwCNkz2d8VFLQ6FdJGAxjjJEY1EEjSBArHjVKn": "USDT",
+  So11111111111111111111111111111111111111112: "SOL",
+  hnfoBeesFnbNQupjFpE8MSS2LpJ3zGeqEkmfPYqwXV1: "JitoSOL",
+  DHEiD7eew9gnaRujuEM5PR9SbvKdhSoS91dRJm7rKYMS: "mSOL",
+  Hck546Ds2XdnqLYfR2Mp7N4vbFtMecF3sgHVFZ2s9yYc: "bSOL",
+};
+
 const useDummyAPYs = true;
 const dummyAPY = {
   USDC: [0.0325, 0.0468],
@@ -80,12 +89,29 @@ export const klendObligation = async (req, res) => {
   const obl = obligations?.[0];
   if (!obl) return {};
 
+  let total = 0;
+  let borrows = 0;
+  let weightedAPY = 0;
+  obl.getDeposits().forEach((b) => {
+    const [supply, _] = dummyAPY[MINTS[b.mintAddress.toBase58()]];
+    weightedAPY += b.marketValueRefreshed.toNumber() * supply;
+    total += b.marketValueRefreshed.toNumber();
+  });
+  obl.getBorrows().forEach((b) => {
+    const [_, borrow] = dummyAPY[MINTS[b.mintAddress.toBase58()]];
+    weightedAPY -= b.marketValueRefreshed.toNumber() * borrow;
+    total += b.marketValueRefreshed.toNumber();
+    borrows += b.marketValueRefreshed.toNumber();
+  });
+
   return {
     obligation: {
       borrows: obl.getBorrows() ?? [],
       deposits: obl.getDeposits() ?? [],
       ltv: obl.loanToValue() ?? "0",
       pda: bestlendUserAccount.toBase58(),
+      effectiveAPY: (weightedAPY / total).toString(),
+      nav: (total - borrows).toString(),
     },
   };
 };

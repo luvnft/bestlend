@@ -1,5 +1,5 @@
 import { getObligation } from "@/requests/backend";
-import { fmtCurrency } from "@/utils/fmt";
+import { fmtCurrency, fmtPct } from "@/utils/fmt";
 import {
   Box,
   Card,
@@ -24,14 +24,6 @@ const Stats = () => {
     () => getObligation(publicKey!),
     { enabled: !!publicKey }
   );
-
-  let value = 0;
-  obligation.data?.borrows.forEach((b) => {
-    value -= b.marketValue;
-  });
-  obligation.data?.deposits.forEach((b) => {
-    value += b.marketValue;
-  });
 
   if (!publicKey) {
     return (
@@ -58,13 +50,17 @@ const Stats = () => {
     );
   }
 
+  const effAPY = obligation.data?.effectiveAPY ?? 0;
+
   return (
     <HStack spacing="2rem" my="4rem">
       <Card>
         <CardBody>
           <Stat minW="150px">
             <StatLabel>Net Value</StatLabel>
-            <StatNumber>{fmtCurrency.format(value)}</StatNumber>
+            <StatNumber>
+              {fmtCurrency.format(obligation.data?.nav ?? 0)}
+            </StatNumber>
             <StatHelpText>0 SOL</StatHelpText>
           </Stat>
         </CardBody>
@@ -73,8 +69,10 @@ const Stats = () => {
         <CardBody>
           <Stat minW="150px">
             <StatLabel>Effective APY</StatLabel>
-            <StatNumber>25.00%</StatNumber>
-            <StatHelpText>$0.00 / year</StatHelpText>
+            <StatNumber>{fmtPct.format(effAPY)}</StatNumber>
+            <StatHelpText>
+              {fmtCurrency.format(effAPY * (obligation.data?.nav ?? 0))} / year
+            </StatHelpText>
           </Stat>
         </CardBody>
       </Card>
@@ -82,7 +80,7 @@ const Stats = () => {
         <CardBody>
           <Stat minW="150px">
             <StatLabel>LTV</StatLabel>
-            <StatNumber>0.75</StatNumber>
+            <StatNumber>{obligation.data?.ltv ?? 0}</StatNumber>
             <StatHelpText>loan to value</StatHelpText>
           </Stat>
         </CardBody>
