@@ -34,7 +34,7 @@ const groups: [string, Asset[]][] = [
 export default function Home() {
   const { publicKey } = useWallet();
   const { connection } = useConnection();
-  const { lastHeartbeat } = useWebsocket();
+  const { lastHeartbeat, messages } = useWebsocket();
 
   const reservesQuery = useQuery("getKlendReserves", () => getKlendReserves());
   const reserves = reservesQuery.data ?? [];
@@ -58,7 +58,7 @@ export default function Home() {
 
   return (
     <Box>
-      <NavBar />
+      <NavBar messages={messages} />
       <Stack p="1rem" spacing="1rem">
         <Stats />
         {groups.map(([group, assets]) => (

@@ -82,6 +82,13 @@ const tableTheme = {
   },
 };
 
+const drawerStyles = definePartsStyle({
+  // @ts-ignore
+  dialog: {
+    bg: `owalaGreen`,
+  },
+});
+
 const components = {
   Card: defineMultiStyleConfig({ baseStyle: baseCardStyle }),
   Button: defineStyleConfig({
@@ -101,6 +108,9 @@ const components = {
   Table: tableTheme,
   Modal: defineMultiStyleConfig({ baseStyle: baseModalStyle }),
   NumberInput: defineMultiStyleConfig({ baseStyle: baseInputStyle }),
+  Drawer: {
+    baseStyle: drawerStyles,
+  },
 };
 
 const theme = extendTheme({ config, colors, styles, components });

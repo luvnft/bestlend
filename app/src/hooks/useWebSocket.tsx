@@ -2,15 +2,22 @@ import { useToast } from "@chakra-ui/react";
 import { useWallet } from "@solana/wallet-adapter-react";
 import { useEffect, useState } from "react";
 
-const useWebsocket = (): { lastHeartbeat: number } => {
+export type Message = {
+  message: string;
+  details: string;
+  ts: Date;
+};
+
+const useWebsocket = (): { lastHeartbeat: number; messages: Message[] } => {
   const { publicKey } = useWallet();
   const [lastHeartbeat, setLastHeartbeat] = useState(Date.now());
+  const [messages, setMessages] = useState<Message[]>([]);
   const toast = useToast();
 
-  const notifyAction = (title: string, description: string) => {
+  const notifyAction = (message: Message) => {
     toast({
-      title,
-      description,
+      title: message.message,
+      description: message.details,
       status: "success",
       duration: 10_000,
       isClosable: true,
@@ -34,7 +41,10 @@ const useWebsocket = (): { lastHeartbeat: number } => {
           setLastHeartbeat(Date.now());
           break;
         case "action":
-          notifyAction(msg.message, msg.details);
+          const m = msg as Message;
+          m.ts = new Date();
+          notifyAction(m);
+          setMessages([...messages, m]);
           break;
       }
     };
@@ -51,6 +61,7 @@ const useWebsocket = (): { lastHeartbeat: number } => {
 
   return {
     lastHeartbeat,
+    messages,
   };
 };
 

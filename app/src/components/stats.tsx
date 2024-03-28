@@ -1,5 +1,7 @@
-import { getObligation } from "@/requests/backend";
+import { getObligation, getStakingRates } from "@/requests/backend";
+import { ASSETS_MINTS } from "@/utils/consts";
 import { fmtCurrency, fmtPct } from "@/utils/fmt";
+import { SunIcon } from "@chakra-ui/icons";
 import {
   Box,
   Card,
@@ -11,6 +13,7 @@ import {
   StatLabel,
   StatNumber,
   Text,
+  Tooltip,
   chakra,
 } from "@chakra-ui/react";
 import { useWallet } from "@solana/wallet-adapter-react";
@@ -24,6 +27,13 @@ const Stats = () => {
     () => getObligation(publicKey!),
     { enabled: !!publicKey }
   );
+
+  const ratesQuery = useQuery("stakingRates", () => getStakingRates());
+  const rate = ratesQuery.data ?? {};
+
+  const stakingRate = obligation.data?.deposits
+    .map((d) => rate[ASSETS_MINTS[d.mint.toBase58()].ticker])
+    .filter(Boolean)?.[0];
 
   if (!publicKey) {
     return (
@@ -69,7 +79,24 @@ const Stats = () => {
         <CardBody>
           <Stat minW="150px">
             <StatLabel>Effective APY</StatLabel>
-            <StatNumber>{fmtPct.format(effAPY)}</StatNumber>
+            <StatNumber>
+              {fmtPct.format(effAPY)}
+              {stakingRate && (
+                <Tooltip
+                  label={`${fmtPct.format(
+                    parseFloat(stakingRate)
+                  )} staking reward`}
+                  placement="top-start"
+                >
+                  <SunIcon
+                    fontSize="md"
+                    color="owalaOrange"
+                    mt="-16px"
+                    ml="5px"
+                  />
+                </Tooltip>
+              )}
+            </StatNumber>
             <StatHelpText>
               {fmtCurrency.format(effAPY * (obligation.data?.nav ?? 0))} / year
             </StatHelpText>
