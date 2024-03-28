@@ -16,6 +16,8 @@ import {
   Spacer,
   useDisclosure,
   VStack,
+  chakra,
+  Flex,
 } from "@chakra-ui/react";
 import { Audiowide } from "next/font/google";
 import Wallet from "./wallet";
@@ -27,15 +29,23 @@ const font = Audiowide({ weight: "400", subsets: ["latin"] });
 const NavBar = ({ messages }: { messages: ActionUpdate[] }) => {
   const { isOpen, onOpen, onClose } = useDisclosure();
 
+  const text = window?.innerWidth > 500 ? "BESTLEND" : "BLEND";
+
   return (
     <>
-      <HStack px="1rem">
-        <Box fontSize="3xl" fontWeight="bold" className={font.className}>
-          BESTLEND
-        </Box>
-        <Box color="owalaOrange" fontSize="lg" ml="-7px" mt="8px">
-          &#9679;
-        </Box>
+      <HStack px="1rem" pt="0.5rem">
+        <Flex>
+          <chakra.span
+            fontSize="3xl"
+            fontWeight="bold"
+            className={font.className}
+          >
+            {text}
+          </chakra.span>
+          <chakra.span color="owalaOrange" fontSize="lg" ml="2px" mt="14px">
+            &#9679;
+          </chakra.span>
+        </Flex>
         <Spacer />
         <Wallet />
         <IconButton

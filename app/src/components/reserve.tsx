@@ -113,7 +113,7 @@ const Reserve = ({ asset, lendingMarket, reserve, depositGroup }: Props) => {
     <>
       <Tr>
         <Td>
-          <HStack spacing="10px" minW="75px">
+          <HStack spacing="10px" minW="125px">
             <Flex>
               <Image
                 src={asset.iconURL}
