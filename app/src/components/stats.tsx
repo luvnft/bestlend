@@ -1,6 +1,10 @@
-import { getObligation, getStakingRates } from "@/requests/backend";
+import {
+  getObligation,
+  getSolanaPrice,
+  getStakingRates,
+} from "@/requests/backend";
 import { ASSETS_MINTS } from "@/utils/consts";
-import { fmtCurrency, fmtPct } from "@/utils/fmt";
+import { fmtCurrency, fmtDecimals, fmtPct } from "@/utils/fmt";
 import { SunIcon } from "@chakra-ui/icons";
 import {
   Box,
@@ -21,6 +25,8 @@ import { useQuery } from "react-query";
 
 const Stats = () => {
   const { publicKey } = useWallet();
+
+  const solanaPriceQuery = useQuery("getSolanaPrice", getSolanaPrice);
 
   const obligation = useQuery(
     "getObligation",
@@ -71,7 +77,14 @@ const Stats = () => {
             <StatNumber>
               {fmtCurrency.format(obligation.data?.nav ?? 0)}
             </StatNumber>
-            <StatHelpText>0 SOL</StatHelpText>
+            {solanaPriceQuery.data && obligation.data?.nav && (
+              <StatHelpText>
+                {fmtDecimals(4).format(
+                  obligation.data?.nav / solanaPriceQuery.data
+                )}{" "}
+                SOL
+              </StatHelpText>
+            )}
           </Stat>
         </CardBody>
       </Card>

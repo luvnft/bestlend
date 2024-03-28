@@ -15,15 +15,16 @@ import {
   Text,
   Spacer,
   useDisclosure,
+  VStack,
 } from "@chakra-ui/react";
 import { Audiowide } from "next/font/google";
 import Wallet from "./wallet";
 import { BellIcon } from "@chakra-ui/icons";
-import { Message } from "@/hooks/useWebSocket";
+import { ActionUpdate } from "@/requests/backend";
 
 const font = Audiowide({ weight: "400", subsets: ["latin"] });
 
-const NavBar = ({ messages }: { messages: Message[] }) => {
+const NavBar = ({ messages }: { messages: ActionUpdate[] }) => {
   const { isOpen, onOpen, onClose } = useDisclosure();
 
   return (
@@ -51,23 +52,25 @@ const NavBar = ({ messages }: { messages: Message[] }) => {
           <DrawerCloseButton />
           <DrawerHeader>Notifications</DrawerHeader>
           <DrawerBody>
-            {messages.map((m, i) => (
-              <Card key={i}>
-                <CardBody>
-                  <Box>
-                    <Heading size="xs" textTransform="uppercase">
-                      {m.message}
-                    </Heading>
-                    <Text pt="2" fontSize="sm">
-                      {m.details}
-                    </Text>
-                    <Text pt="2" fontSize="xs">
-                      {m.ts.toJSON()}
-                    </Text>
-                  </Box>
-                </CardBody>
-              </Card>
-            ))}
+            <VStack>
+              {messages.map((m, i) => (
+                <Card key={i}>
+                  <CardBody>
+                    <Box>
+                      <Heading size="xs" textTransform="uppercase">
+                        {m.message}
+                      </Heading>
+                      <Text pt="2" fontSize="sm">
+                        {m.details}
+                      </Text>
+                      <Text pt="2" fontSize="xs">
+                        {m.ts}
+                      </Text>
+                    </Box>
+                  </CardBody>
+                </Card>
+              ))}
+            </VStack>
           </DrawerBody>
         </DrawerContent>
       </Drawer>

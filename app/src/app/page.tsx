@@ -4,7 +4,12 @@ import NavBar from "@/components/navbar";
 import Reserve from "@/components/reserve";
 import Stats from "@/components/stats";
 import useWebsocket from "@/hooks/useWebSocket";
-import { getKlendReserves, getObligation } from "@/requests/backend";
+import {
+  ActionUpdate,
+  getActionUpdate,
+  getKlendReserves,
+  getObligation,
+} from "@/requests/backend";
 import { getBestLendAccount } from "@/requests/bestlend";
 import { LSTS, STABLES } from "@/utils/consts";
 import { Asset, AssetGroup, LendingMarket } from "@/utils/models";
@@ -22,8 +27,10 @@ import {
   Th,
   Thead,
   Tr,
+  useToast,
 } from "@chakra-ui/react";
 import { useWallet, useConnection } from "@solana/wallet-adapter-react";
+import { useEffect, useState } from "react";
 import { useQuery } from "react-query";
 
 const groups: [string, Asset[]][] = [
@@ -34,7 +41,43 @@ const groups: [string, Asset[]][] = [
 export default function Home() {
   const { publicKey } = useWallet();
   const { connection } = useConnection();
-  const { lastHeartbeat, messages } = useWebsocket();
+  const [checkForUpdates, setCheckForUpdates] = useState(false);
+  const toast = useToast();
+  const [messages, setMessages] = useState<ActionUpdate[]>(
+    JSON.parse(localStorage.getItem("bestlend-messages") ?? "[]")
+      .reverse()
+      .slice(0, 5)
+      .reverse()
+  );
+
+  useEffect(() => {
+    if (publicKey) {
+      setTimeout(() => setCheckForUpdates(true), 10_000);
+    }
+  }, [publicKey]);
+
+  const updateQuery = useQuery(
+    "getActionUpdate",
+    () => getActionUpdate(publicKey!),
+    { enabled: !!publicKey && checkForUpdates, refetchInterval: 60_000 }
+  );
+
+  useEffect(() => {
+    if (updateQuery.data?.updates) {
+      toast({
+        title: updateQuery.data?.message,
+        description: updateQuery.data?.details,
+        status: "success",
+        duration: 10_000,
+        isClosable: true,
+      });
+      setMessages((msgs) => [...msgs, updateQuery.data]);
+    }
+  }, [`${updateQuery.data?.details}${updateQuery.data?.message}`]);
+
+  useEffect(() => {
+    localStorage.setItem("bestlend-messages", JSON.stringify(messages));
+  }, [messages]);
 
   const reservesQuery = useQuery("getKlendReserves", () => getKlendReserves());
   const reserves = reservesQuery.data ?? [];
@@ -107,15 +150,6 @@ export default function Home() {
           </Card>
         ))}
       </Stack>
-      <Box
-        color={Date.now() - lastHeartbeat < 7_500 ? "green" : "red"}
-        fontSize="lg"
-        position="fixed"
-        left="5px"
-        bottom="5px"
-      >
-        &#9679;
-      </Box>
     </Box>
   );
 }

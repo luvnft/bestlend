@@ -84,7 +84,30 @@ export const getObligation = async (
   };
 };
 
+export type ActionUpdate = {
+  updates: boolean;
+  message: string;
+  details: string;
+  ts: string;
+};
+
+export const getActionUpdate = async (
+  user: PublicKey
+): Promise<ActionUpdate> => {
+  const { data } = await axiosInstance.get(
+    `/bestlend/updateCheck?pubkey=${user.toBase58()}`
+  );
+  return data ?? {};
+};
+
 export const getStakingRates = async (): Promise<{ [key: string]: string }> => {
   const { data } = await axiosInstance.get("/bestlend/stakingRates");
   return data ?? {};
+};
+
+export const getSolanaPrice = async (): Promise<number> => {
+  const { data } = await axios.get(
+    "https://api.coingecko.com/api/v3/simple/price?ids=solana&vs_currencies=USD"
+  );
+  return data?.solana.usd;
 };

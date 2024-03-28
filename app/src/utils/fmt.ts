@@ -12,3 +12,8 @@ export const fmtPct = new Intl.NumberFormat("en-US", {
 export const fmtCompact = new Intl.NumberFormat("en-US", {
   notation: "compact",
 });
+
+export const fmtDecimals = (dec: number) =>
+  new Intl.NumberFormat("en-US", {
+    maximumFractionDigits: dec,
+  });
