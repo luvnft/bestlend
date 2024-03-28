@@ -41,7 +41,7 @@ const NavBar = ({ messages }: { messages: Message[] }) => {
           fontSize="2xl"
           aria-label="notifications"
           icon={<BellIcon />}
-          variant="outline"
+          variant="ghost"
           onClick={onOpen}
         />
       </HStack>
@@ -51,8 +51,8 @@ const NavBar = ({ messages }: { messages: Message[] }) => {
           <DrawerCloseButton />
           <DrawerHeader>Notifications</DrawerHeader>
           <DrawerBody>
-            {messages.map((m) => (
-              <Card>
+            {messages.map((m, i) => (
+              <Card key={i}>
                 <CardBody>
                   <Box>
                     <Heading size="xs" textTransform="uppercase">
