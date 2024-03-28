@@ -4,10 +4,10 @@ import { PROGRAM_ID as KLEND_PROGRAM_ID } from "../../clients/klend/src";
 import { connection } from "./rpc";
 import { PROGRAM_ID } from "../../clients/bestlend/src";
 
-const KLEND_MARKET = "EECvYiBQ21Tco5NSVUMHpcfKbkAcAAALDFWpGTUXJEUn";
-const ASSETS = ["USDC", "USDT", "SOL", "JitoSOL", "mSOL", "bSOL"];
+export const KLEND_MARKET = "EECvYiBQ21Tco5NSVUMHpcfKbkAcAAALDFWpGTUXJEUn";
+export const ASSETS = ["USDC", "USDT", "SOL", "JitoSOL", "mSOL", "bSOL"];
 
-const MINTS = {
+export const MINTS = {
   G1oSn38tx54RsruDY68as9PsPAryKYh63q6g29JJ5AmJ: "USDC",
   "5CWwsNUwCNkz2d8VFLQ6FdJGAxjjJEY1EEjSBArHjVKn": "USDT",
   So11111111111111111111111111111111111111112: "SOL",

@@ -3,6 +3,7 @@
 import NavBar from "@/components/navbar";
 import Reserve from "@/components/reserve";
 import Stats from "@/components/stats";
+import useWebsocket from "@/hooks/useWebSocket";
 import { getKlendReserves, getObligation } from "@/requests/backend";
 import { getBestLendAccount } from "@/requests/bestlend";
 import { LSTS, STABLES } from "@/utils/consts";
@@ -33,6 +34,7 @@ const groups: [string, Asset[]][] = [
 export default function Home() {
   const { publicKey } = useWallet();
   const { connection } = useConnection();
+  const { lastHeartbeat } = useWebsocket();
 
   const reservesQuery = useQuery("getKlendReserves", () => getKlendReserves());
   const reserves = reservesQuery.data ?? [];
@@ -105,6 +107,15 @@ export default function Home() {
           </Card>
         ))}
       </Stack>
+      <Box
+        color={Date.now() - lastHeartbeat < 7_500 ? "green" : "red"}
+        fontSize="lg"
+        position="fixed"
+        left="5px"
+        bottom="5px"
+      >
+        &#9679;
+      </Box>
     </Box>
   );
 }

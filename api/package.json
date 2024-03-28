@@ -11,10 +11,12 @@
   },
   "dependencies": {
     "@fastify/cors": "^9.0.1",
+    "@fastify/websocket": "^10.0.1",
     "@hubbleprotocol/kamino-lending-sdk": "^2.9.11",
     "@metaplex-foundation/beet": "^0.7.2",
     "@metaplex-foundation/beet-solana": "^0.4.1",
     "@solana/spl-token": "^0.4.3",
+    "chalk": "4.1.2",
     "decimal.js": "^10.4.3",
     "dotenv": "^16.4.5",
     "fastify": "^4.26.2"
@@ -22,6 +24,7 @@
   "devDependencies": {
     "@flydotio/dockerfile": "^0.5.3",
     "@types/node": "^20.11.30",
+    "@types/ws": "^8.5.10",
     "nodemon": "^3.1.0",
     "ts-node": "^10.9.2",
     "typescript": "^5.4.3"

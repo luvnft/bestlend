@@ -1,8 +1,8 @@
 import type { Metadata } from "next";
-import { Oswald } from "next/font/google";
+import { Ubuntu } from "next/font/google";
 import { Providers } from "./providers";
 
-const owsald = Oswald({ subsets: ["latin"] });
+const owsald = Ubuntu({ subsets: ["latin"], weight: "500" });
 
 export const metadata: Metadata = {
   title: "BESTLEND",

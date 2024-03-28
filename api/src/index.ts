@@ -5,7 +5,8 @@ import { klendMarket, klendObligation } from "./klend";
 import { deposit } from "./tx";
 import Fastify from "fastify";
 import cors from "@fastify/cors";
-import { bestlendStats, stakingRates } from "./bestlend";
+import { bestlendStats, stakingRates, subscribe } from "./bestlend";
+import ws from "@fastify/websocket";
 
 const fastify = Fastify({
   logger: true,
@@ -13,6 +14,7 @@ const fastify = Fastify({
 });
 
 fastify.register(cors);
+fastify.register(require("@fastify/websocket"));
 
 const PORT = parseInt(process.env.PORT) || 3000;
 
@@ -29,6 +31,10 @@ fastify.get("/klend/obligation", klendObligation);
 
 fastify.get("/bestlend/stats", bestlendStats);
 fastify.get("/bestlend/stakingRates", stakingRates);
+
+fastify.register(async function (fastify) {
+  fastify.get("/subscribe", { websocket: true }, subscribe);
+});
 
 fastify.post("/txs/deposit", deposit);
 
