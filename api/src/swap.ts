@@ -30,6 +30,8 @@ import bs58 from "bs58";
 import Decimal from "decimal.js";
 import { connection } from "./rpc";
 import { getOrCreateAssociatedTokenAccount } from "@solana/spl-token";
+import { buildRefreshObligationIxs } from "./tx";
+import { KaminoObligation } from "@hubbleprotocol/kamino-lending-sdk";
 
 // https://github.com/Kamino-Finance/klend-sdk/blob/master/src/classes/action.ts#L1373
 //
@@ -73,6 +75,7 @@ const PRICES = {
 
 export const swapUserAssetsPerformer = async (
   user: PublicKey,
+  obl: KaminoObligation,
   reserves: PublicKey[],
   withdrawReserve: PublicKey,
   depositReserve: PublicKey,
@@ -106,27 +109,7 @@ export const swapUserAssetsPerformer = async (
     KLEND_PROGRAM_ID
   );
 
-  for (let reserve of reserves) {
-    ixs.push(
-      createRefreshReserveInstruction({
-        reserve: reserve,
-        lendingMarket: new PublicKey(KLEND_MARKET),
-        pythOracle: new PublicKey(ORACLES[reserve.toBase58()]),
-      })
-    );
-  }
-
-  ixs.push(
-    createRefreshObligationInstruction({
-      lendingMarket: new PublicKey(KLEND_MARKET),
-      obligation,
-      anchorRemainingAccounts: reserves.map((r) => ({
-        pubkey: r,
-        isSigner: false,
-        isWritable: false,
-      })),
-    })
-  );
+  ixs.push(...buildRefreshObligationIxs(obl, withdrawReserve));
 
   /**
    * PRE ACTION
@@ -151,28 +134,6 @@ export const swapUserAssetsPerformer = async (
   /**
    * REBALANCE
    */
-  for (let reserve of reserves) {
-    ixs.push(
-      createRefreshReserveInstruction({
-        reserve: reserve,
-        lendingMarket: new PublicKey(KLEND_MARKET),
-        pythOracle: new PublicKey(ORACLES[reserve.toBase58()]),
-      })
-    );
-  }
-
-  ixs.push(
-    createRefreshObligationInstruction({
-      lendingMarket: new PublicKey(KLEND_MARKET),
-      obligation,
-      anchorRemainingAccounts: reserves.map((r) => ({
-        pubkey: r,
-        isSigner: false,
-        isWritable: false,
-      })),
-    })
-  );
-
   const withdrawReserveData = await Reserve.fromAccountAddress(
     connection,
     withdrawReserve
@@ -198,6 +159,8 @@ export const swapUserAssetsPerformer = async (
     bestlendUserAccount,
     true
   );
+
+  ixs.push(...buildRefreshObligationIxs(obl, withdrawReserve));
 
   ixs.push(
     createKlendWithdrawInstruction(
@@ -275,6 +238,8 @@ export const swapUserAssetsPerformer = async (
     true
   );
 
+  ixs.push(...buildRefreshObligationIxs(obl, depositReserve));
+
   ixs.push(
     createKlendDepositInstruction(
       {
@@ -297,7 +262,7 @@ export const swapUserAssetsPerformer = async (
         ),
       },
       {
-        amount: 0,
+        amount: outputAmount,
       }
     )
   );
@@ -305,27 +270,7 @@ export const swapUserAssetsPerformer = async (
   /**
    * POST ACTION
    */
-  for (let reserve of reserves) {
-    ixs.push(
-      createRefreshReserveInstruction({
-        reserve: reserve,
-        lendingMarket: new PublicKey(KLEND_MARKET),
-        pythOracle: new PublicKey(ORACLES[reserve.toBase58()]),
-      })
-    );
-  }
-
-  ixs.push(
-    createRefreshObligationInstruction({
-      lendingMarket: new PublicKey(KLEND_MARKET),
-      obligation,
-      anchorRemainingAccounts: reserves.map((r) => ({
-        pubkey: r,
-        isSigner: false,
-        isWritable: false,
-      })),
-    })
-  );
+  ixs.push(...buildRefreshObligationIxs(obl, depositReserve));
 
   ixs.push(
     createPostActionInstruction({

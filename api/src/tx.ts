@@ -19,6 +19,7 @@ import {
 } from "../../clients/bestlend/src";
 import {
   PROGRAM_ID as KLEND_PROGRAM_ID,
+  Obligation,
   Reserve,
   createRefreshObligationInstruction,
   createRefreshReserveInstruction,
@@ -37,7 +38,10 @@ import { KLEND_MARKET, MINTS } from "./klend";
 import { PROGRAM_ID as SWAP_PROGRAM_ID } from "../../clients/dummy-swap/src";
 import bs58 from "bs58";
 import chalk from "chalk";
-import { KaminoMarket } from "@hubbleprotocol/kamino-lending-sdk";
+import {
+  KaminoMarket,
+  KaminoObligation,
+} from "@hubbleprotocol/kamino-lending-sdk";
 
 const LENDING_MARKET = new PublicKey(
   "EECvYiBQ21Tco5NSVUMHpcfKbkAcAAALDFWpGTUXJEUn"
@@ -142,48 +146,12 @@ export const deposit = async (req, res) => {
     new PublicKey(KLEND_MARKET),
     KLEND_PROGRAM_ID
   );
-  const obligations = await market.getAllUserObligations(bestlendUserAccount);
 
-  const anchorRemainingAccounts: AccountMeta[] = [];
+  const obligations = await market.getAllUserObligations(bestlendUserAccount);
   const obl = obligations?.[0];
   if (obl) {
-    for (const res of [
-      ...obl.getDeposits().map((d) => d.reserveAddress),
-      ...obl.getBorrows().map((d) => d.reserveAddress),
-    ]) {
-      // target reserve has to go last
-      if (!res.equals(reserve)) {
-        ixs.push(
-          createRefreshReserveInstruction({
-            reserve: reserve,
-            lendingMarket: LENDING_MARKET,
-            pythOracle: ORACLES[res.toBase58()],
-          })
-        );
-      }
-      anchorRemainingAccounts.push({
-        pubkey: res,
-        isSigner: false,
-        isWritable: false,
-      });
-    }
+    ixs.push(...buildRefreshObligationIxs(obl, reserve));
   }
-
-  ixs.push(
-    createRefreshReserveInstruction({
-      reserve: reserve,
-      lendingMarket: LENDING_MARKET,
-      pythOracle: oracles[ticker],
-    })
-  );
-
-  ixs.push(
-    createRefreshObligationInstruction({
-      lendingMarket: LENDING_MARKET,
-      obligation,
-      anchorRemainingAccounts,
-    })
-  );
 
   ixs.push(
     createKlendDepositInstruction(
@@ -454,4 +422,51 @@ const getALTKeys = (user: PublicKey, performer: PublicKey) => {
   }
 
   return addresses;
+};
+
+export const buildRefreshObligationIxs = (
+  obl: KaminoObligation,
+  targetReserve: PublicKey
+): TransactionInstruction[] => {
+  const ixs: TransactionInstruction[] = [];
+  const anchorRemainingAccounts: AccountMeta[] = [];
+
+  for (const res of [
+    ...obl.getDeposits().map((d) => d.reserveAddress),
+    ...obl.getBorrows().map((d) => d.reserveAddress),
+  ]) {
+    // target reserve has to go last
+    if (!res.equals(targetReserve)) {
+      ixs.push(
+        createRefreshReserveInstruction({
+          reserve: res,
+          lendingMarket: LENDING_MARKET,
+          pythOracle: ORACLES[res.toBase58()],
+        })
+      );
+    }
+    anchorRemainingAccounts.push({
+      pubkey: res,
+      isSigner: false,
+      isWritable: false,
+    });
+  }
+
+  ixs.push(
+    createRefreshReserveInstruction({
+      reserve: targetReserve,
+      lendingMarket: LENDING_MARKET,
+      pythOracle: ORACLES[targetReserve.toBase58()],
+    })
+  );
+
+  ixs.push(
+    createRefreshObligationInstruction({
+      lendingMarket: LENDING_MARKET,
+      obligation: obl.obligationAddress,
+      anchorRemainingAccounts,
+    })
+  );
+
+  return ixs;
 };

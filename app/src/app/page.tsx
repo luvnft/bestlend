@@ -57,7 +57,11 @@ export default function Home() {
   const updateQuery = useQuery(
     "getActionUpdate",
     () => getActionUpdate(publicKey!),
-    { enabled: !!publicKey && checkForUpdates, refetchInterval: 60_000 }
+    {
+      enabled: !!publicKey && checkForUpdates,
+      refetchInterval: 60_000,
+      retry: 0,
+    }
   );
 
   useEffect(() => {

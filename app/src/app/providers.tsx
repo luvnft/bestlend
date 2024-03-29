@@ -116,7 +116,7 @@ const components = {
 const theme = extendTheme({ config, colors, styles, components });
 
 const queryClient = new QueryClient({
-  defaultOptions: { queries: { retry: 2 } },
+  defaultOptions: { queries: { retry: 1 } },
 });
 
 export function Providers({ children }: { children: React.ReactNode }) {

@@ -99,6 +99,7 @@ export const checkForUpdate = async (req, res) => {
       const borrowReserves = obl.getBorrows().map((b) => b.reserveAddress);
       const signature = await swapUserAssetsPerformer(
         user,
+        obl,
         [...depositReserves, ...borrowReserves],
         currentReserve.address,
         best.address,
