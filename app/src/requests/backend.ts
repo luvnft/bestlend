@@ -89,6 +89,7 @@ export type ActionUpdate = {
   message: string;
   details: string;
   ts: string;
+  signature: string;
 };
 
 export const getActionUpdate = async (

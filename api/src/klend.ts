@@ -26,6 +26,18 @@ const dummyAPY = {
   bSOL: [0.0017, 0.008],
 };
 
+type ReserveData = {
+  address: PublicKey;
+  symbol: string;
+  available: string;
+  marketPrice: string;
+  depositTvl: string;
+  borrowedTvl: string;
+  supplyAPR: number;
+  borrowAPR: number;
+  mint: PublicKey;
+};
+
 export const klendMarket = async (req, res) => {
   const market = await KaminoMarket.load(
     connection,
@@ -35,7 +47,7 @@ export const klendMarket = async (req, res) => {
 
   await market.loadReserves();
 
-  const reserves = [];
+  const reserves: ReserveData[] = [];
   market.reserves.forEach((res, address) => {
     // ignore irrelevant reserves
     if (!ASSETS.includes(res.getTokenSymbol())) {
@@ -45,13 +57,13 @@ export const klendMarket = async (req, res) => {
     const dec = res.state.liquidity.mintDecimals.toNumber();
     const mult = 10 ** dec;
 
-    const reserveData = {
+    const reserveData: ReserveData = {
       address: res.address,
       symbol: res.getTokenSymbol(),
-      available: res.getLiquidityAvailableAmount().div(mult),
-      marketPrice: res.getOracleMarketPrice(),
-      depositTvl: res.getDepositTvl(),
-      borrowedTvl: res.getBorrowTvl(),
+      available: res.getLiquidityAvailableAmount().div(mult).toString(),
+      marketPrice: res.getOracleMarketPrice().toString(),
+      depositTvl: res.getDepositTvl().toString(),
+      borrowedTvl: res.getBorrowTvl().toString(),
       supplyAPR: res.calculateSupplyAPR(),
       borrowAPR: res.calculateBorrowAPR(),
       mint: res.getLiquidityMint(),

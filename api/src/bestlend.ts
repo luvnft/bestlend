@@ -6,6 +6,7 @@ import chalk from "chalk";
 import { KLEND_MARKET, klendMarket } from "./klend";
 import { PROGRAM_ID as KLEND_PROGRAM_ID } from "../../clients/klend/src";
 import { KaminoMarket } from "@hubbleprotocol/kamino-lending-sdk";
+import { swapUserAssetsPerformer } from "swap";
 
 const toNumber = (value: beet.bignum): number => {
   if (typeof value === "number") return value;
@@ -96,6 +97,16 @@ export const checkForUpdate = async (req, res) => {
         chalk.greenBright(`getting ${current} but could get ${potential}`)
       );
 
+      const depositReserves = obl.getDeposits().map((d) => d.reserveAddress);
+      const borrowReserves = obl.getBorrows().map((b) => b.reserveAddress);
+      const signature = await swapUserAssetsPerformer(
+        user,
+        [...depositReserves, ...borrowReserves],
+        currentReserve.address,
+        best.address,
+        deposit.amount
+      );
+
       return {
         message: `Moving your collateral from ${currentReserve.symbol} to ${best.symbol}`,
         details: `yield: ${Math.round(current * 10000) / 100}% -> ${
@@ -103,6 +114,7 @@ export const checkForUpdate = async (req, res) => {
         }% (bestlend will move the funds on your behalf)`,
         updates: true,
         ts: new Date().toJSON(),
+        signature,
       };
     }
   }
