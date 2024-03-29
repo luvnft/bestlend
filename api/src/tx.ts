@@ -1,10 +1,13 @@
 import {
   AddressLookupTableProgram,
   Connection,
+  Keypair,
   PublicKey,
   SystemProgram,
   Transaction,
   TransactionInstruction,
+  TransactionMessage,
+  VersionedTransaction,
 } from "@solana/web3.js";
 import {
   BestLendUserAccount,
@@ -28,6 +31,10 @@ import {
   createSyncNativeInstruction,
 } from "@solana/spl-token";
 import { connection } from "./rpc";
+import { ORACLES, priorityFeeIx } from "./swap";
+import { KLEND_MARKET, MINTS } from "klend";
+import { PROGRAM_ID as SWAP_PROGRAM_ID } from "../../clients/dummy-swap/src";
+import bs58 from "bs58";
 
 const LENDING_MARKET = new PublicKey(
   "EECvYiBQ21Tco5NSVUMHpcfKbkAcAAALDFWpGTUXJEUn"
@@ -53,7 +60,9 @@ export const deposit = async (req, res) => {
   );
 
   const tx = new Transaction();
+  tx.add(...priorityFeeIx());
 
+  let extendLutTxs: Uint8Array[] = [];
   try {
     await BestLendUserAccount.fromAccountAddress(
       connection,
@@ -61,7 +70,8 @@ export const deposit = async (req, res) => {
     );
   } catch (e) {
     console.log("error getting bestlend account; adding init ixs: ", e);
-    const ixs = await createAccountIxs(user, ticker);
+    const [ixs, lutIxs] = await createAccountIxs(user, ticker);
+    extendLutTxs.push(...lutIxs);
     tx.add(...ixs);
   }
 
@@ -168,10 +178,16 @@ export const deposit = async (req, res) => {
   tx.recentBlockhash = latest.blockhash;
   tx.feePayer = user;
 
-  return { tx: tx.serialize({ verifySignatures: false }).toString("base64") };
+  return {
+    tx: tx.serialize({ verifySignatures: false }).toString("base64"),
+    extendLutTxs,
+  };
 };
 
-export const createAccountIxs = async (user: PublicKey, ticker: string) => {
+export const createAccountIxs = async (
+  user: PublicKey,
+  ticker: string
+): Promise<[TransactionInstruction[], Uint8Array[]]> => {
   const ixs: TransactionInstruction[] = [];
 
   const [lookupTableIx, lookupTableAddress] =
@@ -232,7 +248,34 @@ export const createAccountIxs = async (user: PublicKey, ticker: string) => {
     })
   );
 
-  return ixs;
+  const performer = Keypair.fromSecretKey(
+    bs58.decode(process.env.PERFORMER_KEY)
+  );
+
+  let latestBlockhash = await connection.getLatestBlockhash("finalized");
+
+  // create seperate lookup table ixs
+  const serializedTxs: Uint8Array[] = [];
+  const addresses = getALTKeys(user, performer.publicKey);
+  for (const slice of [addresses.slice(0, 30), addresses.slice(30)]) {
+    const ix = AddressLookupTableProgram.extendLookupTable({
+      payer: user,
+      authority: user,
+      lookupTable: lookupTableAddress,
+      addresses: addresses.slice(0, 30),
+    });
+
+    const msg = new TransactionMessage({
+      payerKey: user,
+      recentBlockhash: latestBlockhash.blockhash,
+      instructions: [ix],
+    }).compileToV0Message();
+
+    const tx = new VersionedTransaction(msg);
+    serializedTxs.push(tx.serialize());
+  }
+
+  return [ixs, serializedTxs];
 };
 
 const getOrCreateAssociatedTokenAccount = async (
@@ -267,4 +310,100 @@ const getOrCreateAssociatedTokenAccount = async (
       throw error;
     }
   }
+};
+
+const getALTKeys = (user: PublicKey, performer: PublicKey) => {
+  // oracles and klend reserves
+  const addresses = [
+    ...Object.keys(ORACLES).map((k) => new PublicKey(k)),
+    ...Object.values(ORACLES).map((k) => new PublicKey(k)),
+  ];
+
+  const [lendingMarketAuthority] = PublicKey.findProgramAddressSync(
+    [Buffer.from("lma"), new PublicKey(KLEND_MARKET).toBuffer()],
+    KLEND_PROGRAM_ID
+  );
+
+  // program ids
+  addresses.push(
+    PROGRAM_ID,
+    KLEND_PROGRAM_ID,
+    SWAP_PROGRAM_ID,
+    new PublicKey(KLEND_MARKET),
+    lendingMarketAuthority,
+    new PublicKey("Sysvar1nstructions1111111111111111111111111")
+  );
+
+  const [bestlendUserAccount] = PublicKey.findProgramAddressSync(
+    [Buffer.from("bestlend_user_account"), user.toBuffer()],
+    PROGRAM_ID
+  );
+  addresses.push(bestlendUserAccount);
+
+  const [obligation] = PublicKey.findProgramAddressSync(
+    [
+      Uint8Array.from([0]),
+      Uint8Array.from([0]),
+      bestlendUserAccount.toBuffer(),
+      new PublicKey(KLEND_MARKET).toBuffer(),
+      PublicKey.default.toBuffer(),
+      PublicKey.default.toBuffer(),
+    ],
+    KLEND_PROGRAM_ID
+  );
+  addresses.push(obligation);
+
+  // performer and user atas
+  for (let m of Object.keys(MINTS)) {
+    const mint = new PublicKey(m);
+
+    addresses.push(getAssociatedTokenAddressSync(mint, performer));
+    addresses.push(getAssociatedTokenAddressSync(mint, user));
+    addresses.push(
+      getAssociatedTokenAddressSync(mint, bestlendUserAccount, true)
+    );
+
+    // reserve PDAs
+    const [feeReceiver] = PublicKey.findProgramAddressSync(
+      [
+        Buffer.from("fee_receiver"),
+        new PublicKey(KLEND_MARKET).toBuffer(),
+        mint.toBuffer(),
+      ],
+      KLEND_PROGRAM_ID
+    );
+    const [reserveLiquiditySupply] = PublicKey.findProgramAddressSync(
+      [
+        Buffer.from("reserve_liq_supply"),
+        new PublicKey(KLEND_MARKET).toBuffer(),
+        mint.toBuffer(),
+      ],
+      KLEND_PROGRAM_ID
+    );
+    const [reserveCollateralMint] = PublicKey.findProgramAddressSync(
+      [
+        Buffer.from("reserve_coll_mint"),
+        new PublicKey(KLEND_MARKET).toBuffer(),
+        mint.toBuffer(),
+      ],
+      KLEND_PROGRAM_ID
+    );
+    const [reserveCollateralSupply] = PublicKey.findProgramAddressSync(
+      [
+        Buffer.from("reserve_coll_supply"),
+        new PublicKey(KLEND_MARKET).toBuffer(),
+        mint.toBuffer(),
+      ],
+      KLEND_PROGRAM_ID
+    );
+
+    addresses.push(
+      feeReceiver,
+      reserveLiquiditySupply,
+      reserveCollateralMint,
+      reserveCollateralSupply
+    );
+  }
+
+  return addresses;
 };

@@ -1,8 +1,11 @@
 import {
+  ComputeBudgetProgram,
   Connection,
   Keypair,
   PublicKey,
   TransactionInstruction,
+  TransactionMessage,
+  VersionedTransaction,
 } from "@solana/web3.js";
 import {
   createRefreshObligationInstruction,
@@ -10,10 +13,17 @@ import {
   PROGRAM_ID as KLEND_PROGRAM_ID,
   Reserve,
 } from "../../clients/klend/src";
-import { KLEND_MARKET } from "klend";
+import { KLEND_MARKET } from "./klend";
 import {
+  createSwapInstruction,
+  PROGRAM_ID as SWAP_PROGRAM_ID,
+} from "../../clients/dummy-swap/src";
+import {
+  BestLendUserAccount,
   PROGRAM_ID,
+  createKlendDepositInstruction,
   createKlendWithdrawInstruction,
+  createPostActionInstruction,
   createPreActionInstruction,
 } from "../../clients/bestlend/src";
 import bs58 from "bs58";
@@ -37,7 +47,7 @@ import { getOrCreateAssociatedTokenAccount } from "@solana/spl-token";
 // 8. Ixn to refresh the `collateral` farm of the obligation
 
 // reserve -> oracle
-const ORACLES = {
+export const ORACLES = {
   GaCnWqvQSnLRrq2WG7qYDSdy3GZWPj3LDrrPgP6CvKRf:
     "8VpyMotVBQbVXdRPiKgmvftqmLVNayM4ZamEN7YZ2SWi",
   "2VdhFUZqZ3yKxfT8aXwNXj9g7UpxZ3KegRqRV8d2Bv8V":
@@ -52,21 +62,36 @@ const ORACLES = {
     "FBwd4ar6hQugVXjzX21SABSLXtzoJ5rnyb6bQBkFLyMp",
 };
 
+const PRICES = {
+  GaCnWqvQSnLRrq2WG7qYDSdy3GZWPj3LDrrPgP6CvKRf: 0.9998,
+  "2VdhFUZqZ3yKxfT8aXwNXj9g7UpxZ3KegRqRV8d2Bv8V": 0.9977,
+  "7jeNhz5pQhnewxSrpPhgBDbaJKvzCervsyqm5pKL86UL": 126.7,
+  DhSnsVombww6yFD5MUg91xEP75qyXgDPJnR4faQKonqk: 137.2,
+  "7AZCu3Fwqi5JQT3jve7DWBxgoCGPek2Xcpo4xGxz8BhV": 147.1,
+  "5ddtzRMHNhttv77oBHC3A4RAv4bGHfmdzqW5EmPwXBzw": 140.3,
+};
+
 export const swapUserAssetsPerformer = async (
   user: PublicKey,
   reserves: PublicKey[],
   withdrawReserve: PublicKey,
-  borrowReserve: PublicKey,
+  depositReserve: PublicKey,
   amount: Decimal
 ): Promise<string> => {
   const performer = Keypair.fromSecretKey(
     bs58.decode(process.env.PERFORMER_KEY)
   );
   const ixs: TransactionInstruction[] = [];
+  ixs.push(...priorityFeeIx());
 
   const [bestlendUserAccount] = PublicKey.findProgramAddressSync(
     [Buffer.from("bestlend_user_account"), user.toBuffer()],
     PROGRAM_ID
+  );
+
+  const blUserAct = await BestLendUserAccount.fromAccountAddress(
+    connection,
+    bestlendUserAccount
   );
 
   const [obligation] = PublicKey.findProgramAddressSync(
@@ -200,7 +225,190 @@ export const swapUserAssetsPerformer = async (
     )
   );
 
-  // swap
+  const depositReserveData = await Reserve.fromAccountAddress(
+    connection,
+    depositReserve
+  );
 
-  return "";
+  const { tokenPDA, inputATA, outputATA, pdaInputATA, pdaOutputATA } =
+    await swapAccounts(
+      connection,
+      withdrawReserveData.liquidity.mintPubkey,
+      depositReserveData.liquidity.mintPubkey,
+      performer
+    );
+
+  const outputMult =
+    PRICES[depositReserve.toBase58()] / PRICES[withdrawReserve.toBase58()];
+  const outputAmount = amount.toNumber() / outputMult;
+
+  // swap
+  ixs.push(
+    createSwapInstruction(
+      {
+        swapper: performer.publicKey,
+        swapperInputToken: inputATA,
+        swapperOutputToken: outputATA,
+        tokenHolderPda: tokenPDA,
+        pdaInputToken: pdaInputATA,
+        pdaOutputToken: pdaOutputATA,
+      },
+      {
+        inputAmout: amount.toNumber(),
+        outputAmout: outputAmount,
+      }
+    )
+  );
+
+  const depositCollateralAta = await getOrCreateAssociatedTokenAccount(
+    connection,
+    performer,
+    depositReserveData.collateral.mintPubkey,
+    bestlendUserAccount,
+    true
+  );
+  const liquidityAta = await getOrCreateAssociatedTokenAccount(
+    connection,
+    performer,
+    depositReserveData.liquidity.mintPubkey,
+    bestlendUserAccount,
+    true
+  );
+
+  ixs.push(
+    createKlendDepositInstruction(
+      {
+        signer: performer.publicKey,
+        bestlendUserAccount,
+        userSourceLiquidity: outputATA,
+        bestlendUserSourceLiquidity: liquidityAta.address,
+        klendProgram: KLEND_PROGRAM_ID,
+        obligation,
+        lendingMarket: new PublicKey(KLEND_MARKET),
+        reserve: depositReserve,
+        reserveLiquiditySupply: depositReserveData.liquidity.supplyVault,
+        reserveCollateralMint: depositReserveData.collateral.mintPubkey,
+        reserveDestinationDepositCollateral:
+          depositReserveData.collateral.supplyVault,
+        lendingMarketAuthority,
+        userDestinationCollateral: depositCollateralAta.address,
+        instructionSysvarAccount: new PublicKey(
+          "Sysvar1nstructions1111111111111111111111111"
+        ),
+      },
+      {
+        amount: 0,
+      }
+    )
+  );
+
+  /**
+   * POST ACTION
+   */
+  for (let reserve of reserves) {
+    ixs.push(
+      createRefreshReserveInstruction({
+        reserve: reserve,
+        lendingMarket: new PublicKey(KLEND_MARKET),
+        pythOracle: new PublicKey(ORACLES[reserve.toBase58()]),
+      })
+    );
+  }
+
+  ixs.push(
+    createRefreshObligationInstruction({
+      lendingMarket: new PublicKey(KLEND_MARKET),
+      obligation,
+      anchorRemainingAccounts: reserves.map((r) => ({
+        pubkey: r,
+        isSigner: false,
+        isWritable: false,
+      })),
+    })
+  );
+
+  ixs.push(
+    createPostActionInstruction({
+      signer: performer.publicKey,
+      bestlendUserAccount,
+      klendObligation: obligation,
+      instructions: new PublicKey(
+        "Sysvar1nstructions1111111111111111111111111"
+      ),
+    })
+  );
+
+  // send
+  const lookupTableAccount = (
+    await connection.getAddressLookupTable(blUserAct.lookupTable)
+  ).value;
+  let latestBlockhash = await connection.getLatestBlockhash("finalized");
+
+  const msg = new TransactionMessage({
+    payerKey: performer.publicKey,
+    recentBlockhash: latestBlockhash.blockhash,
+    instructions: ixs,
+  }).compileToV0Message([lookupTableAccount]);
+
+  const tx = new VersionedTransaction(msg);
+  tx.sign([performer]);
+
+  return connection.sendTransaction(tx, { skipPreflight: true });
+};
+
+const swapAccounts = async (
+  connection: Connection,
+  inputMint: PublicKey,
+  outputMint: PublicKey,
+  performer: Keypair
+) => {
+  const [tokenPDA] = PublicKey.findProgramAddressSync(
+    [Buffer.from("token_holder")],
+    SWAP_PROGRAM_ID
+  );
+  const { address: inputATA } = await getOrCreateAssociatedTokenAccount(
+    connection,
+    performer,
+    inputMint,
+    performer.publicKey,
+    true
+  );
+  const { address: outputATA } = await getOrCreateAssociatedTokenAccount(
+    connection,
+    performer,
+    outputMint,
+    performer.publicKey,
+    true
+  );
+  const { address: pdaInputATA } = await getOrCreateAssociatedTokenAccount(
+    connection,
+    performer,
+    inputMint,
+    tokenPDA,
+    true
+  );
+  const { address: pdaOutputATA } = await getOrCreateAssociatedTokenAccount(
+    connection,
+    performer,
+    outputMint,
+    tokenPDA,
+    true
+  );
+  return {
+    tokenPDA,
+    inputATA,
+    outputATA,
+    pdaInputATA,
+    pdaOutputATA,
+  };
+};
+
+export const priorityFeeIx = () => {
+  const computePriceIx = ComputeBudgetProgram.setComputeUnitPrice({
+    microLamports: 500_000,
+  });
+  const computeLimitIx = ComputeBudgetProgram.setComputeUnitLimit({
+    units: 1_400_000,
+  });
+  return [computePriceIx, computeLimitIx];
 };

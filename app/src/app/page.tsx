@@ -3,7 +3,6 @@
 import NavBar from "@/components/navbar";
 import Reserve from "@/components/reserve";
 import Stats from "@/components/stats";
-import useWebsocket from "@/hooks/useWebSocket";
 import {
   ActionUpdate,
   getActionUpdate,

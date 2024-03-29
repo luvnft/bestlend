@@ -13,8 +13,6 @@ const toNumber = (value: beet.bignum): number => {
   return value.toNumber();
 };
 
-const sleep = (ms = 0) => new Promise((resolve) => setTimeout(resolve, ms));
-
 export const bestlendStats = async (req, res) => {
   const filters = [
     {
