@@ -81,23 +81,25 @@ const Reserve = ({ asset, lendingMarket, reserve, depositGroup }: Props) => {
         amount * 10 ** asset.decimals,
         reserve!.symbol
       ),
-    onSuccess: async (tx) => {
-      sendTransaction(tx, connection)
-        .then((signature) =>
+    onSuccess: async (txs) => {
+      for (const tx of txs) {
+        try {
+          const sig = await sendTransaction(tx, connection);
           toast({
             title: "Tx success",
-            description: signature,
+            description: sig,
             status: "success",
-          })
-        )
-        .catch((e) =>
+            duration: 1000,
+          });
+        } catch (e) {
           toast({
             title: "Error sending tx",
-            description: e.toString(),
+            description: (e as any)?.toString?.(),
             status: "error",
-          })
-        )
-        .finally(onClose);
+          });
+        }
+      }
+      onClose();
     },
     onError: (error) => {
       console.log(`error getting tx: ${error}`);

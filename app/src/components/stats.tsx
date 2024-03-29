@@ -77,13 +77,15 @@ const Stats = () => {
             <StatNumber>
               {fmtCurrency.format(obligation.data?.nav ?? 0)}
             </StatNumber>
-            {solanaPriceQuery.data && obligation.data?.nav && (
+            {solanaPriceQuery.data && obligation.data?.nav ? (
               <StatHelpText>
                 {fmtDecimals(4).format(
                   obligation.data?.nav / solanaPriceQuery.data
-                )}{" "}
-                SOL
+                )}
+                {" SOL"}
               </StatHelpText>
+            ) : (
+              <StatHelpText>Make a deposit 😊</StatHelpText>
             )}
           </Stat>
         </CardBody>

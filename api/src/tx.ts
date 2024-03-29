@@ -59,8 +59,8 @@ export const deposit = async (req, res) => {
     PROGRAM_ID
   );
 
-  const tx = new Transaction();
-  tx.add(...priorityFeeIx());
+  const ixs: TransactionInstruction[] = [];
+  ixs.push(...priorityFeeIx());
 
   let extendLutTxs: Uint8Array[] = [];
   try {
@@ -72,7 +72,7 @@ export const deposit = async (req, res) => {
     console.log("error getting bestlend account; adding init ixs: ", e);
     const [ixs, lutIxs] = await createAccountIxs(user, ticker);
     extendLutTxs.push(...lutIxs);
-    tx.add(...ixs);
+    ixs.push(...ixs);
   }
 
   const [lendingMarketAuthority] = PublicKey.findProgramAddressSync(
@@ -117,13 +117,13 @@ export const deposit = async (req, res) => {
   );
 
   // might need to create ata accounts
-  if (ix1) tx.add(ix1);
-  if (ix2) tx.add(ix2);
-  if (ix3) tx.add(ix3);
+  if (ix1) ixs.push(ix1);
+  if (ix2) ixs.push(ix2);
+  if (ix3) ixs.push(ix3);
 
   // maybe wrap
   if (ticker === "SOL") {
-    tx.add(
+    ixs.push(
       SystemProgram.transfer({
         fromPubkey: user,
         toPubkey: userLiquidityAta,
@@ -133,7 +133,7 @@ export const deposit = async (req, res) => {
     );
   }
 
-  tx.add(
+  ixs.push(
     createRefreshReserveInstruction({
       reserve: reserve,
       lendingMarket: LENDING_MARKET,
@@ -141,14 +141,14 @@ export const deposit = async (req, res) => {
     })
   );
 
-  tx.add(
+  ixs.push(
     createRefreshObligationInstruction({
       lendingMarket: LENDING_MARKET,
       obligation,
     })
   );
 
-  tx.add(
+  ixs.push(
     createKlendDepositInstruction(
       {
         signer: user,
@@ -175,11 +175,16 @@ export const deposit = async (req, res) => {
   );
 
   const latest = await connection.getLatestBlockhash();
-  tx.recentBlockhash = latest.blockhash;
-  tx.feePayer = user;
+  const msg = new TransactionMessage({
+    payerKey: user,
+    recentBlockhash: latest.blockhash,
+    instructions: ixs,
+  }).compileToV0Message();
+
+  const tx = new VersionedTransaction(msg);
 
   return {
-    tx: tx.serialize({ verifySignatures: false }).toString("base64"),
+    tx: tx.serialize(),
     extendLutTxs,
   };
 };
