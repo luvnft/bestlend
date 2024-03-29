@@ -37,6 +37,7 @@ import { useGetTokenBalances } from "@/requests/rpc";
 import { useState } from "react";
 import { useMutation, useQuery } from "react-query";
 import { fmtCompact, fmtPct } from "@/utils/fmt";
+import { getBestLendAccount } from "@/requests/bestlend";
 
 interface Props {
   asset: Asset;
@@ -46,7 +47,7 @@ interface Props {
 }
 
 const Reserve = ({ asset, lendingMarket, reserve, depositGroup }: Props) => {
-  const { publicKey, sendTransaction } = useWallet();
+  const { publicKey, sendTransaction, signTransaction } = useWallet();
   const { connection } = useConnection();
   const { isOpen, onOpen, onClose } = useDisclosure();
   const toast = useToast();
@@ -60,6 +61,12 @@ const Reserve = ({ asset, lendingMarket, reserve, depositGroup }: Props) => {
     (bal) => bal.mint.toBase58() === reserve?.mint
   );
 
+  const bestlendAccount = useQuery(
+    "bestlendAccount",
+    () => getBestLendAccount(connection, publicKey),
+    { enabled: !!publicKey }
+  );
+
   const obligation = useQuery(
     "getObligation",
     () => getObligation(publicKey!),
@@ -71,7 +78,10 @@ const Reserve = ({ asset, lendingMarket, reserve, depositGroup }: Props) => {
       ? obligation.data?.deposits?.find((d) => d.mint.equals(asset.mint))
       : obligation.data?.borrows?.find((d) => d.mint.equals(asset.mint));
 
-  const btnText = depositGroup === asset.asset_group ? "Deposit" : "Borrow";
+  let btnText = depositGroup === asset.asset_group ? "Deposit" : "Borrow";
+
+  // first deposit, they can do either
+  if (!bestlendAccount.isSuccess) btnText = "Deposit";
 
   const txMutation = useMutation({
     mutationFn: () =>
@@ -85,11 +95,14 @@ const Reserve = ({ asset, lendingMarket, reserve, depositGroup }: Props) => {
       for (const tx of txs) {
         try {
           const sig = await sendTransaction(tx, connection);
+          // const signed = await signTransaction!(tx);
+          // const sig = await connection.sendTransaction(signed, {
+          //   skipPreflight: true,
+          // });
           toast({
             title: "Tx success",
             description: sig,
             status: "success",
-            duration: 1000,
           });
         } catch (e) {
           toast({

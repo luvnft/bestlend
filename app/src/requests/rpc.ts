@@ -17,7 +17,7 @@ export const useGetTokenBalances = (): {
   const { connection } = useConnection();
 
   const query = useQuery(
-    "getAllTokenBalance",
+    ["getAllTokenBalance", publicKey],
     async () => {
       const accounts = await connection.getParsedProgramAccounts(
         new PublicKey("TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA"),
@@ -61,7 +61,7 @@ export const useGetTokenBalances = (): {
   );
 
   const querySOL = useQuery(
-    "getBalance",
+    ["getBalance", publicKey],
     () => connection.getBalance(publicKey!),
     { enabled: !!publicKey }
   );

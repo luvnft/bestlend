@@ -6,7 +6,7 @@ import chalk from "chalk";
 import { KLEND_MARKET, klendMarket } from "./klend";
 import { PROGRAM_ID as KLEND_PROGRAM_ID } from "../../clients/klend/src";
 import { KaminoMarket } from "@hubbleprotocol/kamino-lending-sdk";
-import { swapUserAssetsPerformer } from "swap";
+import { swapUserAssetsPerformer } from "./swap";
 
 const toNumber = (value: beet.bignum): number => {
   if (typeof value === "number") return value;

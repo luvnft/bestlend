@@ -28,7 +28,7 @@ import {
 } from "../../clients/bestlend/src";
 import bs58 from "bs58";
 import Decimal from "decimal.js";
-import { connection } from "rpc";
+import { connection } from "./rpc";
 import { getOrCreateAssociatedTokenAccount } from "@solana/spl-token";
 
 // https://github.com/Kamino-Finance/klend-sdk/blob/master/src/classes/action.ts#L1373

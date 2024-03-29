@@ -7,7 +7,6 @@ import {
   ActionUpdate,
   getActionUpdate,
   getKlendReserves,
-  getObligation,
 } from "@/requests/backend";
 import { getBestLendAccount } from "@/requests/bestlend";
 import { LSTS, STABLES } from "@/utils/consts";
@@ -43,7 +42,7 @@ export default function Home() {
   const [checkForUpdates, setCheckForUpdates] = useState(false);
   const toast = useToast();
   const [messages, setMessages] = useState<ActionUpdate[]>(
-    JSON.parse(localStorage.getItem("bestlend-messages") ?? "[]")
+    JSON.parse(localStorage?.getItem("bestlend-messages") ?? "[]")
       .reverse()
       .slice(0, 5)
       .reverse()
@@ -90,13 +89,9 @@ export default function Home() {
   const isLoading =
     (!bestlendAccount.isFetched && !!publicKey) || !reservesQuery.isFetched;
 
-  // const depositGroup = !bestlendAccount.data?.collateralGroup
-  //   ? AssetGroup.STABLE
-  //   : AssetGroup.LST;
-
   const depositGroup = !bestlendAccount.data?.collateralGroup
-    ? AssetGroup.LST
-    : AssetGroup.STABLE;
+    ? AssetGroup.STABLE
+    : AssetGroup.LST;
 
   return (
     <Box>

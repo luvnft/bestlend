@@ -1,10 +1,11 @@
 import {
+  AccountInfo,
+  AccountMeta,
   AddressLookupTableProgram,
   Connection,
   Keypair,
   PublicKey,
   SystemProgram,
-  Transaction,
   TransactionInstruction,
   TransactionMessage,
   VersionedTransaction,
@@ -32,9 +33,11 @@ import {
 } from "@solana/spl-token";
 import { connection } from "./rpc";
 import { ORACLES, priorityFeeIx } from "./swap";
-import { KLEND_MARKET, MINTS } from "klend";
+import { KLEND_MARKET, MINTS } from "./klend";
 import { PROGRAM_ID as SWAP_PROGRAM_ID } from "../../clients/dummy-swap/src";
 import bs58 from "bs58";
+import chalk from "chalk";
+import { KaminoMarket } from "@hubbleprotocol/kamino-lending-sdk";
 
 const LENDING_MARKET = new PublicKey(
   "EECvYiBQ21Tco5NSVUMHpcfKbkAcAAALDFWpGTUXJEUn"
@@ -69,10 +72,11 @@ export const deposit = async (req, res) => {
       bestlendUserAccount
     );
   } catch (e) {
-    console.log("error getting bestlend account; adding init ixs: ", e);
-    const [ixs, lutIxs] = await createAccountIxs(user, ticker);
+    const [is, lutIxs] = await createAccountIxs(user, ticker);
     extendLutTxs.push(...lutIxs);
-    ixs.push(...ixs);
+
+    console.log(chalk.yellow(`new account adding ${is.length} init ixs`));
+    ixs.push(...is);
   }
 
   const [lendingMarketAuthority] = PublicKey.findProgramAddressSync(
@@ -133,6 +137,38 @@ export const deposit = async (req, res) => {
     );
   }
 
+  const market = await KaminoMarket.load(
+    connection,
+    new PublicKey(KLEND_MARKET),
+    KLEND_PROGRAM_ID
+  );
+  const obligations = await market.getAllUserObligations(bestlendUserAccount);
+
+  const anchorRemainingAccounts: AccountMeta[] = [];
+  const obl = obligations?.[0];
+  if (obl) {
+    for (const res of [
+      ...obl.getDeposits().map((d) => d.reserveAddress),
+      ...obl.getBorrows().map((d) => d.reserveAddress),
+    ]) {
+      // target reserve has to go last
+      if (!res.equals(reserve)) {
+        ixs.push(
+          createRefreshReserveInstruction({
+            reserve: reserve,
+            lendingMarket: LENDING_MARKET,
+            pythOracle: ORACLES[res.toBase58()],
+          })
+        );
+      }
+      anchorRemainingAccounts.push({
+        pubkey: res,
+        isSigner: false,
+        isWritable: false,
+      });
+    }
+  }
+
   ixs.push(
     createRefreshReserveInstruction({
       reserve: reserve,
@@ -145,6 +181,7 @@ export const deposit = async (req, res) => {
     createRefreshObligationInstruction({
       lendingMarket: LENDING_MARKET,
       obligation,
+      anchorRemainingAccounts,
     })
   );
 
@@ -184,8 +221,8 @@ export const deposit = async (req, res) => {
   const tx = new VersionedTransaction(msg);
 
   return {
-    tx: tx.serialize(),
-    extendLutTxs,
+    tx: Buffer.from(tx.serialize()).toString("base64"),
+    extendLutTxs: extendLutTxs.map((t) => Buffer.from(t).toString("base64")),
   };
 };
 
@@ -262,12 +299,18 @@ export const createAccountIxs = async (
   // create seperate lookup table ixs
   const serializedTxs: Uint8Array[] = [];
   const addresses = getALTKeys(user, performer.publicKey);
-  for (const slice of [addresses.slice(0, 30), addresses.slice(30)]) {
+  for (const addy of [
+    addresses.slice(0, 25),
+    addresses.slice(25, 50),
+    addresses.slice(50),
+  ]) {
+    if (addy.length === 0) continue;
+
     const ix = AddressLookupTableProgram.extendLookupTable({
       payer: user,
       authority: user,
       lookupTable: lookupTableAddress,
-      addresses: addresses.slice(0, 30),
+      addresses: addy,
     });
 
     const msg = new TransactionMessage({

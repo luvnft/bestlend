@@ -1,5 +1,5 @@
 import { ASSETS_MINTS } from "@/utils/consts";
-import { PublicKey, Transaction, VersionedTransaction } from "@solana/web3.js";
+import { PublicKey, VersionedTransaction } from "@solana/web3.js";
 import axios from "axios";
 
 const axiosInstance = axios.create({
@@ -36,9 +36,9 @@ export const getDepositTx = async (
     ticker,
   });
   const { tx, extendLutTxs } = data;
-  const txs = [VersionedTransaction.deserialize(tx)];
-  for (const ixArr of extendLutTxs) {
-    txs.push(VersionedTransaction.deserialize(ixArr));
+  const txs = [VersionedTransaction.deserialize(Buffer.from(tx, "base64"))];
+  for (const lutTx of extendLutTxs) {
+    txs.push(VersionedTransaction.deserialize(Buffer.from(lutTx, "base64")));
   }
   return txs;
 };
