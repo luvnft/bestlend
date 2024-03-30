@@ -7,9 +7,10 @@ import {
   ActionUpdate,
   getActionUpdate,
   getKlendReserves,
+  getMarginfiReserves,
 } from "@/requests/backend";
 import { getBestLendAccount } from "@/requests/bestlend";
-import { LSTS, STABLES } from "@/utils/consts";
+import { ASSETS, ASSETS_MINTS, LSTS, STABLES } from "@/utils/consts";
 import { Asset, AssetGroup, LendingMarket } from "@/utils/models";
 import {
   Box,
@@ -28,6 +29,7 @@ import {
   useToast,
 } from "@chakra-ui/react";
 import { useWallet, useConnection } from "@solana/wallet-adapter-react";
+import { PublicKey } from "@solana/web3.js";
 import { useEffect, useState } from "react";
 import { useQuery } from "react-query";
 
@@ -82,6 +84,9 @@ export default function Home() {
   }, [updateQuery.data?.signature]);
 
   const reservesQuery = useQuery("getKlendReserves", () => getKlendReserves());
+  const mfiReservesQuery = useQuery("getMarginfiReserves", () =>
+    getMarginfiReserves()
+  );
   const reserves = reservesQuery.data ?? [];
 
   const bestlendAccount = useQuery(
@@ -96,6 +101,10 @@ export default function Home() {
   const depositGroup = !bestlendAccount.data?.collateralGroup
     ? AssetGroup.STABLE
     : AssetGroup.LST;
+
+  const findMarginfiMint = (mint: PublicKey) => {
+    return mfiReservesQuery.data?.find((res) => res.mint === mint.toBase58());
+  };
 
   return (
     <Box>
@@ -122,15 +131,26 @@ export default function Home() {
                   </Thead>
                   <Tbody>
                     {assets.map((s) => (
-                      <Reserve
-                        key={s.mint.toBase58()}
-                        asset={s}
-                        lendingMarket={LendingMarket.KAMINO}
-                        depositGroup={depositGroup}
-                        reserve={reserves?.find(
-                          (r) => r.mint === s.mint.toBase58()
+                      <>
+                        <Reserve
+                          key={s.mint.toBase58()}
+                          asset={s}
+                          lendingMarket={LendingMarket.KAMINO}
+                          depositGroup={depositGroup}
+                          reserve={reserves?.find(
+                            (r) => r.mint === s.mint.toBase58()
+                          )}
+                        />
+                        {findMarginfiMint(s.mint) && (
+                          <Reserve
+                            key={`mfi-${s.mint.toBase58()}`}
+                            asset={ASSETS_MINTS[s.mint.toBase58()]}
+                            lendingMarket={LendingMarket.MARGINFI}
+                            depositGroup={depositGroup}
+                            reserve={findMarginfiMint(s.mint)}
+                          />
                         )}
-                      />
+                      </>
                     ))}
                   </Tbody>
                 </Table>

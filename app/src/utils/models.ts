@@ -15,7 +15,7 @@ export enum AssetGroup {
 }
 
 export enum LendingMarket {
-  KAMINO,
-  MARGINFI,
-  SOLEND,
+  KAMINO = "KAMINO",
+  MARGINFI = "MARGINFI",
+  SOLEND = "SOLEND",
 }

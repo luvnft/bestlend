@@ -23,6 +23,11 @@ export const getKlendReserves = async (): Promise<KlendReserve[]> => {
   return data?.reserves;
 };
 
+export const getMarginfiReserves = async (): Promise<KlendReserve[]> => {
+  const { data } = await axiosInstance.get("/marginfi/market");
+  return data?.reserves;
+};
+
 export const getDepositTx = async (
   reserve: string,
   user: PublicKey,
@@ -95,6 +100,7 @@ export type ActionUpdate = {
   details: string;
   ts: string;
   signature: string;
+  address: string;
 };
 
 export const getActionUpdate = async (

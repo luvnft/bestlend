@@ -117,6 +117,7 @@ export const checkForUpdate = async (req, res) => {
         updates: true,
         ts: new Date().toJSON(),
         signature,
+        address: user.toBase58(),
       };
     } else {
       console.log(chalk.greenBright(`getting ${current} (optimal)`));

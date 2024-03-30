@@ -3,6 +3,7 @@ import { PublicKey } from "@solana/web3.js";
 import { PROGRAM_ID as KLEND_PROGRAM_ID } from "../../clients/klend/src";
 import { connection } from "./rpc";
 import { PROGRAM_ID } from "../../clients/bestlend/src";
+import Decimal from "decimal.js";
 
 export const KLEND_MARKET = "EECvYiBQ21Tco5NSVUMHpcfKbkAcAAALDFWpGTUXJEUn";
 export const ASSETS = ["USDC", "USDT", "SOL", "JitoSOL", "mSOL", "bSOL"];
@@ -118,9 +119,13 @@ export const klendObligation = async (req, res) => {
 
   return {
     obligation: {
-      borrows: obl.getBorrows() ?? [],
-      deposits: obl.getDeposits() ?? [],
-      ltv: obl.loanToValue() ?? "0",
+      borrows: obl
+        .getBorrows()
+        .filter((b) => b.marketValueRefreshed.gt(new Decimal(0.01))),
+      deposits: obl
+        .getDeposits()
+        .filter((d) => d.marketValueRefreshed.gt(new Decimal(0.01))),
+      ltv: obl.loanToValue(),
       pda: bestlendUserAccount.toBase58(),
       effectiveAPY: (weightedAPY / total).toString(),
       nav: (total - borrows).toString(),

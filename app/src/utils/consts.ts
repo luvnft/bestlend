@@ -101,7 +101,7 @@ export const getMarketIcon = (market: LendingMarket) => {
     case LendingMarket.KAMINO:
       return "https://www.gitbook.com/cdn-cgi/image/width=36,dpr=2,height=36,fit=contain,format=auto/https%3A%2F%2F1424764656-files.gitbook.io%2F~%2Ffiles%2Fv0%2Fb%2Fgitbook-x-prod.appspot.com%2Fo%2Fcollections%252FVStun9gPCuY89Ny0cWJh%252Ficon%252FCl1b8258ZYNv8Sd45Nyy%252FKamino%2520Twitter%2520Logo.png%3Falt%3Dmedia%26token%3D4f444b58-5cb8-4b3b-842b-37acc720e5b2";
     case LendingMarket.MARGINFI:
-      return "https://www.marginfi.com/_next/image?url=%2Fmarginfi_logo.png";
+      return "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAACAAAAAgCAYAAABzenr0AAAAtUlEQVR4Ae3VUQ3DIBSF4SuhEpAwCUiZhDrYHKwOigMkIGESrgQk3P0ClhCWtCdLepLvkfC/EOwfdy3jgQpHR8bhS2iIL/IZlztCEbDAEaqAglAFJIQyoKgDXBlwQygDijIgIZQBVRWw4IU4O2DFjo6Y0LGhok2qw+c24Ehg1n48PwoYX64KWGGqAIcpA3Z1QFYGOEwZ8FQGOJIyIMNUAXeYIsCRYUcHNDjeqNgmf7gCn9RwzT5KysQV1FnTpgAAAABJRU5ErkJggg==";
     case LendingMarket.SOLEND:
       return "https://solend.fi/assets/tokens/slnd.png";
   }

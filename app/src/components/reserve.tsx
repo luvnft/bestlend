@@ -75,8 +75,14 @@ const Reserve = ({ asset, lendingMarket, reserve, depositGroup }: Props) => {
 
   const position =
     depositGroup === asset.asset_group
-      ? obligation.data?.deposits?.find((d) => d.mint.equals(asset.mint))
-      : obligation.data?.borrows?.find((d) => d.mint.equals(asset.mint));
+      ? obligation.data?.deposits?.find(
+          (d) =>
+            d.mint.equals(asset.mint) && lendingMarket === LendingMarket.KAMINO
+        )
+      : obligation.data?.borrows?.find(
+          (d) =>
+            d.mint.equals(asset.mint) && lendingMarket === LendingMarket.KAMINO
+        );
 
   let btnText = depositGroup === asset.asset_group ? "Deposit" : "Borrow";
 
@@ -95,10 +101,6 @@ const Reserve = ({ asset, lendingMarket, reserve, depositGroup }: Props) => {
       for (const tx of txs) {
         try {
           const sig = await sendTransaction(tx, connection);
-          // const signed = await signTransaction!(tx);
-          // const sig = await connection.sendTransaction(signed, {
-          //   skipPreflight: true,
-          // });
           toast({
             title: "Tx success",
             description: sig,
@@ -136,14 +138,16 @@ const Reserve = ({ asset, lendingMarket, reserve, depositGroup }: Props) => {
                 borderRadius="full"
                 alt="asset icon"
               />
-              <Box ml="-12px" mt="17px">
-                <Image
-                  src={getMarketIcon(lendingMarket)}
-                  boxSize="18px"
-                  borderRadius="full"
-                  alt="lending market icon"
-                />
-              </Box>
+              <Tooltip label={lendingMarket}>
+                <Box ml="-12px" mt="17px">
+                  <Image
+                    src={getMarketIcon(lendingMarket)}
+                    boxSize="18px"
+                    borderRadius="full"
+                    alt="lending market icon"
+                  />
+                </Box>
+              </Tooltip>
             </Flex>
             <Box>{asset.ticker}</Box>
           </HStack>
@@ -162,7 +166,7 @@ const Reserve = ({ asset, lendingMarket, reserve, depositGroup }: Props) => {
               <Box>{fmtPct.format(reserve?.supplyAPR)}</Box>
               {rate && (
                 <Tooltip
-                  label={`${fmtPct.format(parseFloat(rate))} staking reward`}
+                  label={`+ ${fmtPct.format(parseFloat(rate))} staking reward`}
                   placement="top"
                 >
                   <SunIcon fontSize="sm" color="owalaOrange" />
@@ -176,7 +180,9 @@ const Reserve = ({ asset, lendingMarket, reserve, depositGroup }: Props) => {
         </Td>
         <Td isNumeric>
           <Stack spacing={0}>
-            <Box>{fmtCompact.format(position?.amount ?? 0)}</Box>
+            <Box textDecoration={!!position?.amount ? "underline" : "none"}>
+              {fmtCompact.format(position?.amount ?? 0)}
+            </Box>
             <Box fontSize="xs">
               ${fmtCompact.format(position?.marketValue ?? 0)}
             </Box>
