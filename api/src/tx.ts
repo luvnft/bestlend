@@ -426,11 +426,13 @@ const getALTKeys = (user: PublicKey, performer: PublicKey) => {
 
 export const buildRefreshObligationIxs = (
   obl: KaminoObligation,
-  targetReserve: PublicKey
+  targetReserve: PublicKey,
+  forceTargetInRefresh = false
 ): TransactionInstruction[] => {
   const ixs: TransactionInstruction[] = [];
   const anchorRemainingAccounts: AccountMeta[] = [];
 
+  let targetInRemaining = false;
   for (const res of [
     ...obl.getDeposits().map((d) => d.reserveAddress),
     ...obl.getBorrows().map((d) => d.reserveAddress),
@@ -441,12 +443,23 @@ export const buildRefreshObligationIxs = (
         createRefreshReserveInstruction({
           reserve: res,
           lendingMarket: LENDING_MARKET,
-          pythOracle: ORACLES[res.toBase58()],
+          pythOracle: new PublicKey(ORACLES[res.toBase58()]),
         })
       );
+    } else {
+      targetInRemaining = true;
     }
     anchorRemainingAccounts.push({
       pubkey: res,
+      isSigner: false,
+      isWritable: false,
+    });
+  }
+
+  // obligation data might not have target deposit if composite ix
+  if (forceTargetInRefresh && !targetInRemaining) {
+    anchorRemainingAccounts.push({
+      pubkey: targetReserve,
       isSigner: false,
       isWritable: false,
     });
@@ -456,7 +469,7 @@ export const buildRefreshObligationIxs = (
     createRefreshReserveInstruction({
       reserve: targetReserve,
       lendingMarket: LENDING_MARKET,
-      pythOracle: ORACLES[targetReserve.toBase58()],
+      pythOracle: new PublicKey(ORACLES[targetReserve.toBase58()]),
     })
   );
 

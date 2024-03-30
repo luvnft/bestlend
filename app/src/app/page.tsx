@@ -65,7 +65,7 @@ export default function Home() {
   );
 
   useEffect(() => {
-    if (updateQuery.data?.updates) {
+    if (updateQuery.data?.signature) {
       toast({
         title: updateQuery.data?.message,
         description: updateQuery.data?.details,
@@ -73,13 +73,13 @@ export default function Home() {
         duration: 10_000,
         isClosable: true,
       });
-      setMessages((msgs) => [...msgs, updateQuery.data]);
+      setMessages((msgs) => {
+        const updated = [...msgs, updateQuery.data];
+        localStorage.setItem("bestlend-messages", JSON.stringify(messages));
+        return updated;
+      });
     }
-  }, [`${updateQuery.data?.details}${updateQuery.data?.message}`]);
-
-  useEffect(() => {
-    localStorage.setItem("bestlend-messages", JSON.stringify(messages));
-  }, [messages]);
+  }, [updateQuery.data?.signature]);
 
   const reservesQuery = useQuery("getKlendReserves", () => getKlendReserves());
   const reserves = reservesQuery.data ?? [];

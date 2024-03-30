@@ -7,6 +7,7 @@ import { KLEND_MARKET, klendMarket } from "./klend";
 import { PROGRAM_ID as KLEND_PROGRAM_ID } from "../../clients/klend/src";
 import { KaminoMarket } from "@hubbleprotocol/kamino-lending-sdk";
 import { swapUserAssetsPerformer } from "./swap";
+import Decimal from "decimal.js";
 
 const toNumber = (value: beet.bignum): number => {
   if (typeof value === "number") return value;
@@ -76,6 +77,11 @@ export const checkForUpdate = async (req, res) => {
   }
 
   for (const deposit of obl.getDeposits()) {
+    // ignore if less than a dollar
+    if (deposit.marketValueRefreshed.lt(new Decimal(1))) {
+      continue;
+    }
+
     const currentReserve = reserves.find((res) =>
       res.mint.equals(deposit.mintAddress)
     );
@@ -95,12 +101,9 @@ export const checkForUpdate = async (req, res) => {
         chalk.greenBright(`getting ${current} but could get ${potential}`)
       );
 
-      const depositReserves = obl.getDeposits().map((d) => d.reserveAddress);
-      const borrowReserves = obl.getBorrows().map((b) => b.reserveAddress);
       const signature = await swapUserAssetsPerformer(
         user,
         obl,
-        [...depositReserves, ...borrowReserves],
         currentReserve.address,
         best.address,
         deposit.amount
@@ -110,11 +113,13 @@ export const checkForUpdate = async (req, res) => {
         message: `Moving your collateral from ${currentReserve.symbol} to ${best.symbol}`,
         details: `yield: ${Math.round(current * 10000) / 100}% -> ${
           Math.round(potential * 10000) / 100
-        }% (bestlend will move the funds on your behalf)`,
+        }% (https://solana.fm/tx/${signature}?cluster=devnet-alpha)`,
         updates: true,
         ts: new Date().toJSON(),
         signature,
       };
+    } else {
+      console.log(chalk.greenBright(`getting ${current} (optimal)`));
     }
   }
 

@@ -78,7 +78,7 @@ const WalletSelect = ({ small }: { small?: boolean }) => {
                 console.error(e);
               })
               .finally(async () => {
-                await queryClient.invalidateQueries();
+                await queryClient.clear();
                 onClose();
               });
           }}

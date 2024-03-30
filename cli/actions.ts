@@ -6,6 +6,8 @@ import {
   SystemProgram,
   PublicKey,
   AddressLookupTableProgram,
+  Connection,
+  LAMPORTS_PER_SOL,
 } from "@solana/web3.js";
 import fs from "fs";
 import { keys } from "../keys";
@@ -21,6 +23,7 @@ import {
   createRefreshReserveInstruction,
   createUpdateEntireReserveConfigInstruction,
 } from "../clients/klend/src";
+import { PROGRAM_ID as SWAP_PROGRAM_ID } from "../clients/dummy-swap/src";
 import { getReserveConfig } from "../tests/configs";
 import {
   PROGRAM_ID,
@@ -29,6 +32,7 @@ import {
   createKlendDepositInstruction,
 } from "../clients/bestlend/src";
 import {
+  createSyncNativeInstruction,
   getOrCreateAssociatedTokenAccount,
   mintTo,
 } from "../node_modules/@solana/spl-token";
@@ -37,10 +41,8 @@ const defaultKeypairLocation = "/home/sc4recoin/.config/solana/id.json";
 const ASSETS = ["USDC", "USDT", "SOL", "JitoSOL", "mSOL", "bSOL"];
 const PRICES = [9998, 9977, 1267000, 1372000, 1471000, 1403000];
 
-const shyft = new ShyftSdk({
-  apiKey: process.env.SHYFT_API_KEY ?? "",
-  network: Network.Devnet,
-});
+const rpc = `https://devnet.helius-rpc.com/?api-key=${process.env.HELIUS_KEY}`;
+const connection = new Connection(rpc);
 
 const cli = new Command();
 
@@ -79,10 +81,7 @@ cli
 
     const tx = new Transaction().add(ix);
 
-    const signature = await shyft.connection.sendTransaction(tx, [
-      wallet,
-      oracle,
-    ]);
+    const signature = await connection.sendTransaction(tx, [wallet, oracle]);
     console.log({ signature });
   });
 
@@ -98,7 +97,7 @@ cli.command("initLendingMarket").action(async () => {
   const quoteCurrency = Array(32).fill(0);
   Buffer.from("USD").forEach((b, i) => (quoteCurrency[i] = b));
 
-  const minBalance = await shyft.connection.getMinimumBalanceForRentExemption(
+  const minBalance = await connection.getMinimumBalanceForRentExemption(
     4656 + 8
   );
   const createMarketAccountTx = SystemProgram.createAccount({
@@ -110,10 +109,7 @@ cli.command("initLendingMarket").action(async () => {
   });
 
   let tx = new Transaction().add(createMarketAccountTx);
-  let signature = await shyft.connection.sendTransaction(tx, [
-    wallet,
-    lendingMarket,
-  ]);
+  let signature = await connection.sendTransaction(tx, [wallet, lendingMarket]);
   console.log({ signature });
   await sleep(5000);
 
@@ -130,7 +126,7 @@ cli.command("initLendingMarket").action(async () => {
     )
   );
 
-  signature = await shyft.connection.sendTransaction(tx, [wallet]);
+  signature = await connection.sendTransaction(tx, [wallet]);
   console.log({ signature });
 });
 
@@ -146,7 +142,7 @@ cli
         : new PublicKey("So11111111111111111111111111111111111111112");
     const reserve = keyPairFromB58(keys.reserves[ticker]);
 
-    const minBalance = await shyft.connection.getMinimumBalanceForRentExemption(
+    const minBalance = await connection.getMinimumBalanceForRentExemption(
       8616 + 8
     );
     const createReserveAccountTx = SystemProgram.createAccount({
@@ -158,10 +154,7 @@ cli
     });
 
     let tx = new Transaction().add(createReserveAccountTx);
-    let signature = await shyft.connection.sendTransaction(tx, [
-      wallet,
-      reserve,
-    ]);
+    let signature = await connection.sendTransaction(tx, [wallet, reserve]);
     console.log({ signature });
 
     const [lendingMarketAuthority] = PublicKey.findProgramAddressSync(
@@ -216,9 +209,7 @@ cli
       })
     );
 
-    let signatureInit = await shyft.connection.sendTransaction(txInit, [
-      wallet,
-    ]);
+    let signatureInit = await connection.sendTransaction(txInit, [wallet]);
     console.log({ signature: signatureInit });
   });
 
@@ -250,7 +241,7 @@ cli.command("updateReserveConfigs").action(async () => {
     );
 
     let tx = new Transaction().add(ix);
-    let signature = await shyft.connection.sendTransaction(tx, [wallet]);
+    let signature = await connection.sendTransaction(tx, [wallet]);
     console.log({ signature, asset: ASSETS[i] });
   }
 });
@@ -272,7 +263,7 @@ cli
     });
 
     let tx = new Transaction().add(ix);
-    let signature = await shyft.connection.sendTransaction(tx, [wallet]);
+    let signature = await connection.sendTransaction(tx, [wallet]);
     console.log({ signature, ticker });
   });
 
@@ -289,29 +280,72 @@ cli.command("mintTokens").action(async () => {
     bSOL: "Hck546Ds2XdnqLYfR2Mp7N4vbFtMecF3sgHVFZ2s9yYc",
   };
 
-  for (let i = 0; i < userKeys.length; i++) {
-    const user = keyPairFromB58(userKeys[i]);
-    const ticker = ASSETS[i];
-    const mint = new PublicKey(mints[ticker]);
+  const [tokenPDA] = PublicKey.findProgramAddressSync(
+    [Buffer.from("token_holder")],
+    SWAP_PROGRAM_ID
+  );
 
-    console.log(`minting for ${user.publicKey} (${ticker})`);
+  console.log(tokenPDA.toBase58());
+
+  for (let mint of Object.values(mints)) {
+    console.log("mint", mint);
 
     const ata = await getOrCreateAssociatedTokenAccount(
-      shyft.connection,
-      user,
-      mint,
-      user.publicKey
+      connection,
+      wallet,
+      new PublicKey(mint),
+      tokenPDA,
+      true
     );
 
+    if (mint === "So11111111111111111111111111111111111111112") {
+      const tx = new Transaction().add(
+        SystemProgram.transfer({
+          fromPubkey: wallet.publicKey,
+          toPubkey: ata.address,
+          lamports: 5 * LAMPORTS_PER_SOL,
+        }),
+        createSyncNativeInstruction(ata.address)
+      );
+      await connection.sendTransaction(tx, [wallet]);
+      continue;
+    }
+
     await mintTo(
-      shyft.connection,
+      connection,
       wallet,
-      mint,
+      new PublicKey(mint),
       ata.address,
       wallet,
-      i < 1 ? 100e9 : 10000e6
+      10000e9
     );
   }
+
+  const mintUsers = false;
+  if (mintUsers)
+    for (let i = 0; i < userKeys.length; i++) {
+      const user = keyPairFromB58(userKeys[i]);
+      const ticker = ASSETS[i];
+      const mint = new PublicKey(mints[ticker]);
+
+      console.log(`minting for ${user.publicKey} (${ticker})`);
+
+      const ata = await getOrCreateAssociatedTokenAccount(
+        connection,
+        user,
+        mint,
+        user.publicKey
+      );
+
+      await mintTo(
+        connection,
+        wallet,
+        mint,
+        ata.address,
+        wallet,
+        i < 1 ? 100e9 : 10000e6
+      );
+    }
 });
 
 cli.command("userDeposit").action(async () => {
@@ -326,7 +360,7 @@ cli.command("userDeposit").action(async () => {
 
   const reserveKey = keyPairFromB58(keys.reserves[ASSETS[i]]);
   const reserve = await Reserve.fromAccountAddress(
-    shyft.connection,
+    connection,
     reserveKey.publicKey
   );
   const oracle = keyPairFromB58(keys.oracles[ASSETS[i]]);
@@ -348,21 +382,21 @@ cli.command("userDeposit").action(async () => {
 
   // user account PDA ATAs
   const collateralAta = await getOrCreateAssociatedTokenAccount(
-    shyft.connection,
+    connection,
     wallet,
     reserve.collateral.mintPubkey,
     bestlendUserAccount,
     true
   );
   const liquidityAta = await getOrCreateAssociatedTokenAccount(
-    shyft.connection,
+    connection,
     wallet,
     reserve.liquidity.mintPubkey,
     bestlendUserAccount,
     true
   );
   const userLiquidityAta = await getOrCreateAssociatedTokenAccount(
-    shyft.connection,
+    connection,
     wallet,
     reserve.liquidity.mintPubkey,
     user.publicKey
@@ -383,7 +417,7 @@ cli.command("userDeposit").action(async () => {
   const tx = new Transaction();
 
   if (createObligation) {
-    const recentSlot = await shyft.connection.getSlot("finalized");
+    const recentSlot = await connection.getSlot("finalized");
 
     const [lookupTableIx, lookupTableAddress] =
       AddressLookupTableProgram.createLookupTable({
@@ -463,7 +497,7 @@ cli.command("userDeposit").action(async () => {
     )
   );
 
-  let signature = await shyft.connection.sendTransaction(tx, [wallet, user]);
+  let signature = await connection.sendTransaction(tx, [wallet, user]);
   console.log({ signature, targetIndex: i });
 });
 

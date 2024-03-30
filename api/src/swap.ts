@@ -8,8 +8,6 @@ import {
   VersionedTransaction,
 } from "@solana/web3.js";
 import {
-  createRefreshObligationInstruction,
-  createRefreshReserveInstruction,
   PROGRAM_ID as KLEND_PROGRAM_ID,
   Reserve,
 } from "../../clients/klend/src";
@@ -32,6 +30,7 @@ import { connection } from "./rpc";
 import { getOrCreateAssociatedTokenAccount } from "@solana/spl-token";
 import { buildRefreshObligationIxs } from "./tx";
 import { KaminoObligation } from "@hubbleprotocol/kamino-lending-sdk";
+import chalk from "chalk";
 
 // https://github.com/Kamino-Finance/klend-sdk/blob/master/src/classes/action.ts#L1373
 //
@@ -76,7 +75,6 @@ const PRICES = {
 export const swapUserAssetsPerformer = async (
   user: PublicKey,
   obl: KaminoObligation,
-  reserves: PublicKey[],
   withdrawReserve: PublicKey,
   depositReserve: PublicKey,
   amount: Decimal
@@ -111,6 +109,9 @@ export const swapUserAssetsPerformer = async (
 
   ixs.push(...buildRefreshObligationIxs(obl, withdrawReserve));
 
+  const value = calculateAccountValue(obl);
+  const adjustedValue = value * 0.99925;
+
   /**
    * PRE ACTION
    */
@@ -125,8 +126,8 @@ export const swapUserAssetsPerformer = async (
         ),
       },
       {
-        minAccountValue: 0,
-        minAccountExpo: 0,
+        minAccountValue: Math.ceil(adjustedValue * 10000),
+        minAccountExpo: 4,
       }
     )
   );
@@ -149,8 +150,7 @@ export const swapUserAssetsPerformer = async (
     connection,
     performer,
     withdrawReserveData.liquidity.mintPubkey,
-    performer.publicKey,
-    true
+    performer.publicKey
   );
   const collateralAta = await getOrCreateAssociatedTokenAccount(
     connection,
@@ -161,6 +161,9 @@ export const swapUserAssetsPerformer = async (
   );
 
   ixs.push(...buildRefreshObligationIxs(obl, withdrawReserve));
+
+  // if we remove all then the obligation will be closed
+  amount = amount.sub(new Decimal(1));
 
   ixs.push(
     createKlendWithdrawInstruction(
@@ -270,7 +273,7 @@ export const swapUserAssetsPerformer = async (
   /**
    * POST ACTION
    */
-  ixs.push(...buildRefreshObligationIxs(obl, depositReserve));
+  ixs.push(...buildRefreshObligationIxs(obl, depositReserve, true));
 
   ixs.push(
     createPostActionInstruction({
@@ -356,4 +359,14 @@ export const priorityFeeIx = () => {
     units: 1_400_000,
   });
   return [computePriceIx, computeLimitIx];
+};
+
+export const calculateAccountValue = (obl: KaminoObligation) => {
+  const deposits = obl
+    .getDeposits()
+    .map((d) => d.marketValueRefreshed.toNumber());
+  const borrows = obl
+    .getBorrows()
+    .map((b) => b.marketValueRefreshed.toNumber());
+  return [...deposits, ...borrows].reduce((acc, current) => acc + current);
 };

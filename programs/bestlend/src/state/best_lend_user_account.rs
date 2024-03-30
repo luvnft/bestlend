@@ -26,7 +26,7 @@ pub struct BestLendUserAccount {
 
 impl BestLendUserAccount {
     pub const LEN: usize = 280 + 8;
-    pub const DEFAULT_PI_BPS: u8 = 10;
+    pub const DEFAULT_PI_BPS: u8 = 30;
 }
 
 const CALCULATE_RESTING_VALUE: bool = false;
