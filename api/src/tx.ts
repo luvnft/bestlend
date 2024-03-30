@@ -15,6 +15,7 @@ import {
   PROGRAM_ID,
   createInitAccountInstruction,
   createInitKlendAccountInstruction,
+  createKlendBorrowInstruction,
   createKlendDepositInstruction,
 } from "../../clients/bestlend/src";
 import {
@@ -31,6 +32,7 @@ import {
   TokenAccountNotFoundError,
   TokenInvalidAccountOwnerError,
   createSyncNativeInstruction,
+  createCloseAccountInstruction,
 } from "@solana/spl-token";
 import { connection } from "./rpc";
 import { ORACLES, priorityFeeIx } from "./swap";
@@ -191,6 +193,103 @@ export const deposit = async (req, res) => {
   return {
     tx: Buffer.from(tx.serialize()).toString("base64"),
     extendLutTxs: extendLutTxs.map((t) => Buffer.from(t).toString("base64")),
+  };
+};
+
+export const borrow = async (req, res) => {
+  const { pubkey, reserve: reserveKey, amount, ticker } = req.body;
+  const user = new PublicKey(pubkey);
+  const reserve = new PublicKey(reserveKey);
+
+  const [bestlendUserAccount] = PublicKey.findProgramAddressSync(
+    [Buffer.from("bestlend_user_account"), user.toBuffer()],
+    PROGRAM_ID
+  );
+
+  const ixs: TransactionInstruction[] = [];
+  ixs.push(...priorityFeeIx());
+
+  const [lendingMarketAuthority] = PublicKey.findProgramAddressSync(
+    [Buffer.from("lma"), LENDING_MARKET.toBuffer()],
+    KLEND_PROGRAM_ID
+  );
+
+  const reserveData = await Reserve.fromAccountAddress(connection, reserve);
+
+  const [obligation] = PublicKey.findProgramAddressSync(
+    [
+      Uint8Array.from([0]),
+      Uint8Array.from([0]),
+      bestlendUserAccount.toBuffer(),
+      LENDING_MARKET.toBuffer(),
+      PublicKey.default.toBuffer(),
+      PublicKey.default.toBuffer(),
+    ],
+    KLEND_PROGRAM_ID
+  );
+
+  // user account / PDA ATAs
+  const [userLiquidityAta, ix1] = await getOrCreateAssociatedTokenAccount(
+    connection,
+    user,
+    reserveData.liquidity.mintPubkey,
+    user
+  );
+
+  // might need to create ata accounts
+  if (ix1) ixs.push(ix1);
+
+  const market = await KaminoMarket.load(
+    connection,
+    new PublicKey(KLEND_MARKET),
+    KLEND_PROGRAM_ID
+  );
+
+  const obligations = await market.getAllUserObligations(bestlendUserAccount);
+  const obl = obligations?.[0];
+  if (obl) {
+    ixs.push(...buildRefreshObligationIxs(obl, reserve));
+  }
+
+  ixs.push(
+    createKlendBorrowInstruction(
+      {
+        signer: user,
+        bestlendUserAccount,
+        obligation,
+        klendProgram: KLEND_PROGRAM_ID,
+        lendingMarket: LENDING_MARKET,
+        lendingMarketAuthority,
+        reserve: reserve,
+        userDestinationLiquidity: userLiquidityAta,
+        instructions: new PublicKey(
+          "Sysvar1nstructions1111111111111111111111111"
+        ),
+        reserveSourceLiquidity: reserveData.liquidity.supplyVault,
+        borrowReserveLiquidityFeeReceiver: reserveData.liquidity.feeVault,
+      },
+      {
+        amount,
+      }
+    )
+  );
+
+  // unwrap SOL
+  if (ticker === "SOL") {
+    ixs.push(createCloseAccountInstruction(userLiquidityAta, user, user));
+  }
+
+  const latest = await connection.getLatestBlockhash();
+  const msg = new TransactionMessage({
+    payerKey: user,
+    recentBlockhash: latest.blockhash,
+    instructions: ixs,
+  }).compileToV0Message();
+
+  const tx = new VersionedTransaction(msg);
+
+  return {
+    tx: Buffer.from(tx.serialize()).toString("base64"),
   };
 };
 

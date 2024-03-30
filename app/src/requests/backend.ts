@@ -48,6 +48,21 @@ export const getDepositTx = async (
   return txs;
 };
 
+export const getBorrowTx = async (
+  reserve: string,
+  user: PublicKey,
+  amount: number,
+  ticker: string
+): Promise<VersionedTransaction[]> => {
+  const { data } = await axiosInstance.post("/txs/borrow", {
+    pubkey: user.toBase58(),
+    reserve,
+    amount,
+    ticker,
+  });
+  return [VersionedTransaction.deserialize(Buffer.from(data.tx, "base64"))];
+};
+
 type Position = {
   reserveAddress: PublicKey;
   mint: PublicKey;

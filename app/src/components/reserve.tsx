@@ -1,5 +1,6 @@
 import {
   KlendReserve,
+  getBorrowTx,
   getDepositTx,
   getObligation,
   getStakingRates,
@@ -84,14 +85,15 @@ const Reserve = ({ asset, lendingMarket, reserve, depositGroup }: Props) => {
             d.mint.equals(asset.mint) && lendingMarket === LendingMarket.KAMINO
         );
 
-  let btnText = depositGroup === asset.asset_group ? "Deposit" : "Borrow";
+  const isDeposit = depositGroup === asset.asset_group;
+  let btnText = isDeposit ? "Deposit" : "Borrow";
 
   // first deposit, they can do either
   if (!bestlendAccount.isSuccess) btnText = "Deposit";
 
   const txMutation = useMutation({
     mutationFn: () =>
-      getDepositTx(
+      (isDeposit ? getDepositTx : getBorrowTx)(
         reserve!.address,
         publicKey!,
         amount * 10 ** asset.decimals,
@@ -222,13 +224,19 @@ const Reserve = ({ asset, lendingMarket, reserve, depositGroup }: Props) => {
             </Box>
           </ModalBody>
           <ModalFooter>
-            <Button
-              isDisabled={!amount}
-              onClick={() => txMutation.mutate()}
-              isLoading={txMutation.isLoading}
-            >
-              {btnText}
-            </Button>
+            {lendingMarket === LendingMarket.MARGINFI ? (
+              <Tooltip label="Marginfi not enabled at this time">
+                <Button isDisabled>{btnText} </Button>
+              </Tooltip>
+            ) : (
+              <Button
+                isDisabled={!amount}
+                onClick={() => txMutation.mutate()}
+                isLoading={txMutation.isLoading}
+              >
+                {btnText}
+              </Button>
+            )}
           </ModalFooter>
         </ModalContent>
       </Modal>

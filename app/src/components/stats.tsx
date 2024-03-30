@@ -122,7 +122,9 @@ const Stats = () => {
         <CardBody>
           <Stat minW="150px">
             <StatLabel>LTV</StatLabel>
-            <StatNumber>{obligation.data?.ltv ?? 0}</StatNumber>
+            <StatNumber>
+              {fmtDecimals(4).format(obligation.data?.ltv ?? 0)}
+            </StatNumber>
             <StatHelpText>loan to value</StatHelpText>
           </Stat>
         </CardBody>
