@@ -43,12 +43,16 @@ export default function Home() {
   const { connection } = useConnection();
   const [checkForUpdates, setCheckForUpdates] = useState(false);
   const toast = useToast();
-  const [messages, setMessages] = useState<ActionUpdate[]>(
-    JSON.parse(localStorage?.getItem("bestlend-messages") ?? "[]")
-      .reverse()
-      .slice(0, 5)
-      .reverse()
-  );
+  const [messages, setMessages] = useState<ActionUpdate[]>([]);
+
+  useEffect(() => {
+    setMessages(
+      JSON.parse(localStorage?.getItem("bestlend-messages") ?? "[]")
+        .reverse()
+        .slice(0, 5)
+        .reverse()
+    );
+  }, []);
 
   useEffect(() => {
     if (publicKey) {
@@ -77,7 +81,7 @@ export default function Home() {
       });
       setMessages((msgs) => {
         const updated = [...msgs, updateQuery.data];
-        localStorage.setItem("bestlend-messages", JSON.stringify(messages));
+        localStorage?.setItem("bestlend-messages", JSON.stringify(messages));
         return updated;
       });
     }

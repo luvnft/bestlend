@@ -31,7 +31,10 @@ const NavBar = ({ messages }: { messages: ActionUpdate[] }) => {
   const { publicKey } = useWallet();
   const { isOpen, onOpen, onClose } = useDisclosure();
 
-  const text = window?.innerWidth > 500 ? "BESTLEND" : "BLEND";
+  let text = "BESTLEND";
+  if (typeof window !== "undefined") {
+    text = window?.innerWidth > 500 ? "BESTLEND" : "BLEND";
+  }
 
   return (
     <>
