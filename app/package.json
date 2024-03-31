@@ -21,6 +21,8 @@
     "@solana/web3.js": "^1.91.0",
     "axios": "^1.6.8",
     "decimal.js": "^10.4.3",
+    "dexie": "^4.0.1",
+    "dexie-react-hooks": "^1.1.7",
     "framer-motion": "^11.0.8",
     "next": "14.1.3",
     "react": "^18",

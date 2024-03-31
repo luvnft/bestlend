@@ -41,6 +41,7 @@ import { useState } from "react";
 import { useMutation, useQuery } from "react-query";
 import { fmtCompact, fmtPct } from "@/utils/fmt";
 import { getBestLendAccount } from "@/requests/bestlend";
+import { db } from "@/utils/db";
 
 interface Props {
   asset: Asset;
@@ -100,6 +101,21 @@ const Reserve = ({ asset, lendingMarket, reserve, depositGroup }: Props) => {
     return isDepositBorrowAction ? getBorrowTx : getRepayTx;
   };
 
+  const addAction = async (signature: string) => {
+    const message = isDepositBorrowAction ? btnText : otherBtnText;
+    console.log(`saving ${message} to db`);
+    db.publishedActions
+      .add({
+        message,
+        details: `You performed a ${message} of ${amount} ${asset.ticker}`,
+        ts: new Date().toJSON(),
+        signature,
+        address: publicKey!.toBase58(),
+        amount,
+      })
+      .catch((e) => console.error(`error adding db entry: ${e}`));
+  };
+
   const txMutation = useMutation({
     mutationFn: () =>
       getAction()(
@@ -109,9 +125,11 @@ const Reserve = ({ asset, lendingMarket, reserve, depositGroup }: Props) => {
         reserve!.symbol
       ),
     onSuccess: async (txs) => {
-      for (const tx of txs) {
+      for (let i = 0; i < txs.length; i++) {
         try {
-          const sig = await sendTransaction(tx, connection);
+          const sig = await sendTransaction(txs[i], connection);
+          if (i === 0) addAction(sig);
+
           toast({
             title: "Tx success",
             description: sig,

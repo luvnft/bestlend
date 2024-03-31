@@ -11,6 +11,7 @@ import {
 } from "@/requests/backend";
 import { getBestLendAccount } from "@/requests/bestlend";
 import { ASSETS, ASSETS_MINTS, LSTS, STABLES } from "@/utils/consts";
+import { db } from "@/utils/db";
 import { Asset, AssetGroup, LendingMarket } from "@/utils/models";
 import {
   Box,
@@ -43,16 +44,6 @@ export default function Home() {
   const { connection } = useConnection();
   const [checkForUpdates, setCheckForUpdates] = useState(false);
   const toast = useToast();
-  const [messages, setMessages] = useState<ActionUpdate[]>([]);
-
-  useEffect(() => {
-    setMessages(
-      JSON.parse(localStorage?.getItem("bestlend-messages") ?? "[]")
-        .reverse()
-        .slice(0, 5)
-        .reverse()
-    );
-  }, []);
 
   useEffect(() => {
     if (publicKey) {
@@ -65,25 +56,31 @@ export default function Home() {
     () => getActionUpdate(publicKey!),
     {
       enabled: !!publicKey && checkForUpdates,
-      refetchInterval: 60_000,
+      refetchInterval: 30_000,
       retry: 0,
     }
   );
 
   useEffect(() => {
-    if (updateQuery.data?.signature) {
+    const data = updateQuery.data;
+    if (data?.signature) {
       toast({
-        title: updateQuery.data?.message,
-        description: updateQuery.data?.details,
+        title: data.message,
+        description: data.details,
         status: "success",
         duration: 10_000,
         isClosable: true,
       });
-      setMessages((msgs) => {
-        const updated = [...msgs, updateQuery.data];
-        localStorage?.setItem("bestlend-messages", JSON.stringify(messages));
-        return updated;
-      });
+      db.publishedActions
+        .add({
+          message: data.message,
+          details: data.details,
+          ts: new Date().toJSON(),
+          signature: data.signature,
+          address: publicKey!.toBase58(),
+          amount: data.amount,
+        })
+        .catch((e) => console.error(`error adding db entry: ${e}`));
     }
   }, [updateQuery.data?.signature]);
 
@@ -112,7 +109,7 @@ export default function Home() {
 
   return (
     <Box>
-      <NavBar messages={messages} />
+      <NavBar />
       <Stack p="1rem" spacing="1rem">
         <Stats />
         {groups.map(([group, assets]) => (

@@ -113,11 +113,12 @@ export const checkForUpdate = async (req, res) => {
         message: `Moving your collateral from ${currentReserve.symbol} to ${best.symbol}`,
         details: `yield: ${Math.round(current * 10000) / 100}% -> ${
           Math.round(potential * 10000) / 100
-        }% (https://solana.fm/tx/${signature}?cluster=devnet-alpha)`,
+        }%`,
         updates: true,
         ts: new Date().toJSON(),
         signature,
         address: user.toBase58(),
+        amount: deposit.amount.toNumber(),
       };
     } else {
       console.log(chalk.greenBright(`getting ${current} (optimal)`));

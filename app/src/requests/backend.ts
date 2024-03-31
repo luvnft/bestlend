@@ -146,6 +146,7 @@ export type ActionUpdate = {
   ts: string;
   signature: string;
   address: string;
+  amount: number;
 };
 
 export const getActionUpdate = async (
