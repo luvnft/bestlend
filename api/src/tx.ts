@@ -17,6 +17,8 @@ import {
   createInitKlendAccountInstruction,
   createKlendBorrowInstruction,
   createKlendDepositInstruction,
+  createKlendRepayInstruction,
+  createKlendWithdrawInstruction,
 } from "../../clients/bestlend/src";
 import {
   PROGRAM_ID as KLEND_PROGRAM_ID,
@@ -267,6 +269,219 @@ export const borrow = async (req, res) => {
         ),
         reserveSourceLiquidity: reserveData.liquidity.supplyVault,
         borrowReserveLiquidityFeeReceiver: reserveData.liquidity.feeVault,
+      },
+      {
+        amount,
+      }
+    )
+  );
+
+  // unwrap SOL
+  if (ticker === "SOL") {
+    ixs.push(createCloseAccountInstruction(userLiquidityAta, user, user));
+  }
+
+  const latest = await connection.getLatestBlockhash();
+  const msg = new TransactionMessage({
+    payerKey: user,
+    recentBlockhash: latest.blockhash,
+    instructions: ixs,
+  }).compileToV0Message();
+
+  const tx = new VersionedTransaction(msg);
+
+  return {
+    tx: Buffer.from(tx.serialize()).toString("base64"),
+  };
+};
+
+export const repay = async (req, res) => {
+  const { pubkey, reserve: reserveKey, amount, ticker } = req.body;
+  const user = new PublicKey(pubkey);
+  const reserve = new PublicKey(reserveKey);
+
+  const [bestlendUserAccount] = PublicKey.findProgramAddressSync(
+    [Buffer.from("bestlend_user_account"), user.toBuffer()],
+    PROGRAM_ID
+  );
+
+  const ixs: TransactionInstruction[] = [];
+  ixs.push(...priorityFeeIx());
+
+  const reserveData = await Reserve.fromAccountAddress(connection, reserve);
+
+  const [obligation] = PublicKey.findProgramAddressSync(
+    [
+      Uint8Array.from([0]),
+      Uint8Array.from([0]),
+      bestlendUserAccount.toBuffer(),
+      LENDING_MARKET.toBuffer(),
+      PublicKey.default.toBuffer(),
+      PublicKey.default.toBuffer(),
+    ],
+    KLEND_PROGRAM_ID
+  );
+
+  // user account / PDA ATAs
+  const [liquidityAta, ix2] = await getOrCreateAssociatedTokenAccount(
+    connection,
+    user,
+    reserveData.liquidity.mintPubkey,
+    bestlendUserAccount,
+    true
+  );
+  const [userLiquidityAta, ix3] = await getOrCreateAssociatedTokenAccount(
+    connection,
+    user,
+    reserveData.liquidity.mintPubkey,
+    user
+  );
+
+  // might need to create ata accounts
+  if (ix2) ixs.push(ix2);
+  if (ix3) ixs.push(ix3);
+
+  // maybe wrap
+  if (ticker === "SOL") {
+    ixs.push(
+      SystemProgram.transfer({
+        fromPubkey: user,
+        toPubkey: userLiquidityAta,
+        lamports: amount,
+      }),
+      createSyncNativeInstruction(userLiquidityAta)
+    );
+  }
+
+  const market = await KaminoMarket.load(
+    connection,
+    new PublicKey(KLEND_MARKET),
+    KLEND_PROGRAM_ID
+  );
+
+  const obligations = await market.getAllUserObligations(bestlendUserAccount);
+  const obl = obligations?.[0];
+  if (obl) {
+    ixs.push(...buildRefreshObligationIxs(obl, reserve));
+  }
+
+  ixs.push(
+    createKlendRepayInstruction(
+      {
+        signer: user,
+        bestlendUserAccount,
+        obligation,
+        klendProgram: KLEND_PROGRAM_ID,
+        lendingMarket: LENDING_MARKET,
+        reserve: reserve,
+        userSourceLiquidity: userLiquidityAta,
+        bestlendUserSourceLiquidity: liquidityAta,
+        reserveDestinationLiquidity: reserveData.liquidity.supplyVault,
+        instructionSysvarAccount: new PublicKey(
+          "Sysvar1nstructions1111111111111111111111111"
+        ),
+      },
+      {
+        amount,
+      }
+    )
+  );
+
+  const latest = await connection.getLatestBlockhash();
+  const msg = new TransactionMessage({
+    payerKey: user,
+    recentBlockhash: latest.blockhash,
+    instructions: ixs,
+  }).compileToV0Message();
+
+  const tx = new VersionedTransaction(msg);
+
+  return {
+    tx: Buffer.from(tx.serialize()).toString("base64"),
+  };
+};
+
+export const withdraw = async (req, res) => {
+  const { pubkey, reserve: reserveKey, amount, ticker } = req.body;
+  const user = new PublicKey(pubkey);
+  const reserve = new PublicKey(reserveKey);
+
+  const [bestlendUserAccount] = PublicKey.findProgramAddressSync(
+    [Buffer.from("bestlend_user_account"), user.toBuffer()],
+    PROGRAM_ID
+  );
+
+  const ixs: TransactionInstruction[] = [];
+  ixs.push(...priorityFeeIx());
+
+  const [lendingMarketAuthority] = PublicKey.findProgramAddressSync(
+    [Buffer.from("lma"), LENDING_MARKET.toBuffer()],
+    KLEND_PROGRAM_ID
+  );
+
+  const reserveData = await Reserve.fromAccountAddress(connection, reserve);
+
+  const [obligation] = PublicKey.findProgramAddressSync(
+    [
+      Uint8Array.from([0]),
+      Uint8Array.from([0]),
+      bestlendUserAccount.toBuffer(),
+      LENDING_MARKET.toBuffer(),
+      PublicKey.default.toBuffer(),
+      PublicKey.default.toBuffer(),
+    ],
+    KLEND_PROGRAM_ID
+  );
+
+  // user account / PDA ATAs
+  const [userLiquidityAta, ix1] = await getOrCreateAssociatedTokenAccount(
+    connection,
+    user,
+    reserveData.liquidity.mintPubkey,
+    user
+  );
+  const [collateralAta, ix2] = await getOrCreateAssociatedTokenAccount(
+    connection,
+    user,
+    reserveData.collateral.mintPubkey,
+    bestlendUserAccount,
+    true
+  );
+
+  // might need to create ata accounts
+  if (ix1) ixs.push(ix1);
+  if (ix2) ixs.push(ix2);
+
+  const market = await KaminoMarket.load(
+    connection,
+    new PublicKey(KLEND_MARKET),
+    KLEND_PROGRAM_ID
+  );
+
+  const obligations = await market.getAllUserObligations(bestlendUserAccount);
+  const obl = obligations?.[0];
+  if (obl) {
+    ixs.push(...buildRefreshObligationIxs(obl, reserve));
+  }
+
+  ixs.push(
+    createKlendWithdrawInstruction(
+      {
+        signer: user,
+        bestlendUserAccount,
+        obligation,
+        klendProgram: KLEND_PROGRAM_ID,
+        lendingMarket: LENDING_MARKET,
+        lendingMarketAuthority,
+        reserve: reserve,
+        userDestinationLiquidity: userLiquidityAta,
+        reserveLiquiditySupply: reserveData.liquidity.supplyVault,
+        reserveCollateralMint: reserveData.collateral.mintPubkey,
+        reserveSourceDepositCollateral: reserveData.collateral.supplyVault,
+        userDestinationCollateral: collateralAta,
+        instructions: new PublicKey(
+          "Sysvar1nstructions1111111111111111111111111"
+        ),
       },
       {
         amount,

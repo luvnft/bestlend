@@ -98,7 +98,7 @@ const Stats = () => {
               {fmtPct.format(effAPY)}
               {stakingRate && (
                 <Tooltip
-                  label={`+ ${fmtPct.format(
+                  label={`${fmtPct.format(
                     parseFloat(stakingRate)
                   )} staking reward`}
                   placement="top-start"

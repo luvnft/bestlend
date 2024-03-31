@@ -4,6 +4,7 @@ import { PROGRAM_ID as KLEND_PROGRAM_ID } from "../../clients/klend/src";
 import { connection } from "./rpc";
 import { PROGRAM_ID } from "../../clients/bestlend/src";
 import Decimal from "decimal.js";
+import { stakingRates } from "./bestlend";
 
 export const KLEND_MARKET = "EECvYiBQ21Tco5NSVUMHpcfKbkAcAAALDFWpGTUXJEUn";
 export const ASSETS = ["USDC", "USDT", "SOL", "JitoSOL", "mSOL", "bSOL"];
@@ -102,11 +103,19 @@ export const klendObligation = async (req, res) => {
   const obl = obligations?.[0];
   if (!obl) return {};
 
+  const stakeRates = await stakingRates(null, null);
+
   let total = 0;
   let borrows = 0;
   let weightedAPY = 0;
   obl.getDeposits().forEach((b) => {
-    const [supply, _] = dummyAPY[MINTS[b.mintAddress.toBase58()]];
+    let [supply, _] = dummyAPY[MINTS[b.mintAddress.toBase58()]];
+
+    const staking = parseFloat(
+      stakeRates[MINTS[b.mintAddress.toBase58()]] ?? "0"
+    );
+    supply += staking;
+
     weightedAPY += b.marketValueRefreshed.toNumber() * supply;
     total += b.marketValueRefreshed.toNumber();
   });

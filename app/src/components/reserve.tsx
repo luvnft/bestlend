@@ -3,7 +3,9 @@ import {
   getBorrowTx,
   getDepositTx,
   getObligation,
+  getRepayTx,
   getStakingRates,
+  getWithdrawTx,
 } from "@/requests/backend";
 import { getMarketIcon } from "@/utils/consts";
 import { Asset, AssetGroup, LendingMarket } from "@/utils/models";
@@ -48,11 +50,12 @@ interface Props {
 }
 
 const Reserve = ({ asset, lendingMarket, reserve, depositGroup }: Props) => {
-  const { publicKey, sendTransaction, signTransaction } = useWallet();
+  const { publicKey, sendTransaction } = useWallet();
   const { connection } = useConnection();
   const { isOpen, onOpen, onClose } = useDisclosure();
   const toast = useToast();
   const [amount, setAmount] = useState(0);
+  const [isDepositBorrowAction, setIsDepositBorrowAction] = useState(true);
 
   const ratesQuery = useQuery("stakingRates", () => getStakingRates());
   const rate = ratesQuery.data?.[asset.ticker];
@@ -87,13 +90,19 @@ const Reserve = ({ asset, lendingMarket, reserve, depositGroup }: Props) => {
 
   const isDeposit = depositGroup === asset.asset_group;
   let btnText = isDeposit ? "Deposit" : "Borrow";
+  let otherBtnText = isDeposit ? "Withdraw" : "Repay";
 
   // first deposit, they can do either
   if (!bestlendAccount.isSuccess) btnText = "Deposit";
 
+  const getAction = () => {
+    if (isDeposit) return isDepositBorrowAction ? getDepositTx : getWithdrawTx;
+    return isDepositBorrowAction ? getBorrowTx : getRepayTx;
+  };
+
   const txMutation = useMutation({
     mutationFn: () =>
-      (isDeposit ? getDepositTx : getBorrowTx)(
+      getAction()(
         reserve!.address,
         publicKey!,
         amount * 10 ** asset.decimals,
@@ -190,13 +199,36 @@ const Reserve = ({ asset, lendingMarket, reserve, depositGroup }: Props) => {
             </Box>
           </Stack>
         </Td>
-        <Td isNumeric>
+        <Td w="225px">
           {!publicKey ? (
             <Wallet small />
           ) : (
-            <Button size="sm" onClick={onOpen}>
-              {btnText}
-            </Button>
+            <HStack>
+              {!!position?.amount ? (
+                <Button
+                  size="sm"
+                  onClick={() => {
+                    setIsDepositBorrowAction(false);
+                    onOpen();
+                  }}
+                  w="90px"
+                >
+                  {otherBtnText}
+                </Button>
+              ) : (
+                <Box w="90px" />
+              )}
+              <Button
+                size="sm"
+                onClick={() => {
+                  setIsDepositBorrowAction(true);
+                  onOpen();
+                }}
+                w="90px"
+              >
+                {btnText}
+              </Button>
+            </HStack>
           )}
         </Td>
       </Tr>
@@ -204,7 +236,7 @@ const Reserve = ({ asset, lendingMarket, reserve, depositGroup }: Props) => {
         <ModalOverlay />
         <ModalContent>
           <ModalHeader>
-            {btnText} {reserve?.symbol}
+            {isDepositBorrowAction ? btnText : otherBtnText} {reserve?.symbol}
           </ModalHeader>
           <ModalCloseButton />
           <ModalBody>
@@ -234,7 +266,7 @@ const Reserve = ({ asset, lendingMarket, reserve, depositGroup }: Props) => {
                 onClick={() => txMutation.mutate()}
                 isLoading={txMutation.isLoading}
               >
-                {btnText}
+                {isDepositBorrowAction ? btnText : otherBtnText}
               </Button>
             )}
           </ModalFooter>
