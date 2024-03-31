@@ -126,6 +126,8 @@ export const klendObligation = async (req, res) => {
     borrows += b.marketValueRefreshed.toNumber();
   });
 
+  const nav = total - borrows * 2;
+
   return {
     obligation: {
       borrows: obl
@@ -137,7 +139,8 @@ export const klendObligation = async (req, res) => {
       ltv: obl.loanToValue(),
       pda: bestlendUserAccount.toBase58(),
       effectiveAPY: (weightedAPY / total).toString(),
-      nav: (total - borrows).toString(),
+      nav: nav.toString(),
+      borrowLeft: (nav * (0.7 - obl.loanToValue().toNumber())).toString(),
     },
   };
 };

@@ -95,10 +95,16 @@ export const checkForUpdate = async (req, res) => {
     const current = currentReserve.supplyAPR + getRate(currentReserve.symbol);
     const potential = best.supplyAPR + getRate(best.symbol);
 
+    const ltv = obl.loanToValue();
+    const mult = new Decimal(1).sub(ltv.div(new Decimal(0.78)));
+    const amt = deposit.amount.mul(mult).floor();
+
     // move user to better asset
     if (potential > current) {
       console.log(
-        chalk.greenBright(`getting ${current} but could get ${potential}`)
+        chalk.greenBright(
+          `getting ${current} but could get ${potential}\namount:${amt.toString()}`
+        )
       );
 
       const signature = await swapUserAssetsPerformer(
@@ -106,7 +112,7 @@ export const checkForUpdate = async (req, res) => {
         obl,
         currentReserve.address,
         best.address,
-        deposit.amount
+        amt
       );
 
       try {
@@ -130,7 +136,14 @@ export const checkForUpdate = async (req, res) => {
           };
         }
       } catch (e) {
-        console.log(chalk.redBright(`error confirming tx: ${e}`));
+        console.log(
+          chalk.redBright(`error confirming tx: ${JSON.stringify(e)}`)
+        );
+        res.code(500);
+        return {
+          signature,
+          error: "error confirming tx",
+        };
       }
 
       return {
@@ -142,7 +155,9 @@ export const checkForUpdate = async (req, res) => {
         ts: new Date().toJSON(),
         signature,
         address: user.toBase58(),
-        amount: deposit.amount.toNumber(),
+        amount:
+          amt.toNumber() /
+          10 ** (currentReserve.symbol.includes("USD") ? 6 : 9),
       };
     } else {
       console.log(chalk.greenBright(`getting ${current} (optimal)`));

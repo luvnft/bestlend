@@ -11,7 +11,7 @@ import {
   PROGRAM_ID as KLEND_PROGRAM_ID,
   Reserve,
 } from "../../clients/klend/src";
-import { KLEND_MARKET } from "./klend";
+import { KLEND_MARKET, MINTS } from "./klend";
 import {
   createSwapInstruction,
   PROGRAM_ID as SWAP_PROGRAM_ID,
@@ -35,17 +35,12 @@ import chalk from "chalk";
 // https://github.com/Kamino-Finance/klend-sdk/blob/master/src/classes/action.ts#L1373
 //
 // The support ixns in order are:
-// 0. Init obligation ixn
-// 0. Token Ata ixns
-// 0. Init obligation for farm
-// 1. Ixns to refresh the reserves of the obligation not related to the current action
-// 2. Ixn to refresh the reserve of the current action
-// 3. Ixn to refresh the obligation
-// 4. Ixn to refresh the `debt` farm of the obligation
-// 5. Ixn to refresh the `collateral` farm of the obligation
-// 6. The instruction itself
-// 7. Ixn to refresh the `debt` farm of the obligation
-// 8. Ixn to refresh the `collateral` farm of the obligation
+// - Init obligation ixn
+// - Token Ata ixns
+// - Ixns to refresh the reserves of the obligation not related to the current action
+// - Ixn to refresh the reserve of the current action
+// - Ixn to refresh the obligation
+// - The instruction itself
 
 // reserve -> oracle
 export const ORACLES = {
@@ -273,7 +268,22 @@ export const swapUserAssetsPerformer = async (
   /**
    * POST ACTION
    */
-  ixs.push(...buildRefreshObligationIxs(obl, depositReserve, true));
+
+  // deposit is not in deposits
+  if (
+    obl
+      .getDeposits()
+      .findIndex((d) => d.reserveAddress.equals(depositReserve)) === -1
+  ) {
+    obl.deposits.set(depositReserve, {
+      reserveAddress: depositReserve,
+      mintAddress: depositReserveData.liquidity.mintPubkey,
+      amount: new Decimal(0),
+      marketValueRefreshed: new Decimal(0),
+    });
+  }
+
+  ixs.push(...buildRefreshObligationIxs(obl, PublicKey.default, true));
 
   ixs.push(
     createPostActionInstruction({

@@ -18,6 +18,8 @@ import {
   chakra,
   Flex,
   Link,
+  Stack,
+  Button,
 } from "@chakra-ui/react";
 import { Audiowide } from "next/font/google";
 import Wallet from "./wallet";
@@ -82,26 +84,25 @@ const NavBar = () => {
               {actions?.map((m, i) => (
                 <Card key={i} w="100%">
                   <CardBody>
-                    <Box>
+                    <Stack spacing="0px">
                       <Heading size="xs" textTransform="uppercase">
                         {m.message}
                       </Heading>
-                      <Text pt="2" fontSize="sm">
-                        {m.details}
-                      </Text>
-                      <Link
-                        fontSize="sm"
-                        isExternal
-                        href={`https://solana.fm/tx/${m.signature}?cluster=devnet-alpha`}
-                      >
-                        {m.signature?.slice(0, 8)}...
-                        {m.signature?.slice(m.signature?.length - 8)}
-                        <ExternalLinkIcon mx="4px" mb="2px" />
-                      </Link>
-                      <Text pt="2" fontSize="xs">
-                        {m.ts}
-                      </Text>
-                    </Box>
+                      <Text fontSize="sm">{m.details}</Text>
+                      <Text fontSize="sm">{`amount: ${m.amount}`}</Text>
+                      <Button size="sm" variant="outline">
+                        <Link
+                          fontSize="sm"
+                          isExternal
+                          href={`https://solana.fm/tx/${m.signature}?cluster=devnet-alpha`}
+                        >
+                          {m.signature?.slice(0, 8)}...
+                          {m.signature?.slice(m.signature?.length - 8)}
+                          <ExternalLinkIcon mx="4px" mb="2px" />
+                        </Link>
+                      </Button>
+                      <Text fontSize="xs">{m.ts}</Text>
+                    </Stack>
                   </CardBody>
                 </Card>
               ))}

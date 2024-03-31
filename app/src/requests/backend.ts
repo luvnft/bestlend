@@ -108,6 +108,7 @@ export type KlendObligation = {
   pda: PublicKey;
   nav: number;
   effectiveAPY: number;
+  borrowLeft: number;
 };
 
 export const getObligation = async (
@@ -136,6 +137,7 @@ export const getObligation = async (
     pda: new PublicKey(obligation?.pda),
     nav: parseFloat(obligation?.nav),
     effectiveAPY: parseFloat(obligation?.effectiveAPY),
+    borrowLeft: Math.round(parseFloat(obligation?.borrowLeft) * 100) / 100,
   };
 };
 

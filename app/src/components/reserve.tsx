@@ -16,6 +16,7 @@ import {
   Flex,
   HStack,
   Image,
+  Link,
   Modal,
   ModalBody,
   ModalCloseButton,
@@ -38,7 +39,7 @@ import { useConnection, useWallet } from "@solana/wallet-adapter-react";
 import Wallet from "./wallet";
 import { useGetTokenBalances } from "@/requests/rpc";
 import { useState } from "react";
-import { useMutation, useQuery } from "react-query";
+import { useMutation, useQuery, useQueryClient } from "react-query";
 import { fmtCompact, fmtPct } from "@/utils/fmt";
 import { getBestLendAccount } from "@/requests/bestlend";
 import { db } from "@/utils/db";
@@ -51,10 +52,12 @@ interface Props {
 }
 
 const Reserve = ({ asset, lendingMarket, reserve, depositGroup }: Props) => {
-  const { publicKey, sendTransaction } = useWallet();
+  const { publicKey, sendTransaction, signTransaction } = useWallet();
   const { connection } = useConnection();
   const { isOpen, onOpen, onClose } = useDisclosure();
   const toast = useToast();
+  const queryClient = useQueryClient();
+
   const [amount, setAmount] = useState(0);
   const [isDepositBorrowAction, setIsDepositBorrowAction] = useState(true);
 
@@ -96,8 +99,16 @@ const Reserve = ({ asset, lendingMarket, reserve, depositGroup }: Props) => {
   // first deposit, they can do either
   if (!bestlendAccount.isSuccess) btnText = "Deposit";
 
+  // limit how much users can take from reserves
+  const borrowMax =
+    asset.asset_group === AssetGroup.STABLE
+      ? Math.min(obligation.data?.borrowLeft ?? 100, 100)
+      : 1;
+  const overMax = btnText === "Borrow" && amount > borrowMax;
+
   const getAction = () => {
-    if (isDeposit) return isDepositBorrowAction ? getDepositTx : getWithdrawTx;
+    if (isDeposit || !bestlendAccount.isSuccess)
+      return isDepositBorrowAction ? getDepositTx : getWithdrawTx;
     return isDepositBorrowAction ? getBorrowTx : getRepayTx;
   };
 
@@ -128,6 +139,10 @@ const Reserve = ({ asset, lendingMarket, reserve, depositGroup }: Props) => {
       for (let i = 0; i < txs.length; i++) {
         try {
           const sig = await sendTransaction(txs[i], connection);
+          // const tx = await signTransaction!(txs[i]);
+          // const sig = await connection.sendRawTransaction(tx.serialize(), {
+          //   skipPreflight: true,
+          // });
           if (i === 0) addAction(sig);
 
           toast({
@@ -143,6 +158,7 @@ const Reserve = ({ asset, lendingMarket, reserve, depositGroup }: Props) => {
           });
         }
       }
+      queryClient.invalidateQueries({ queryKey: ["getObligation"] });
       onClose();
     },
     onError: (error) => {
@@ -271,6 +287,16 @@ const Reserve = ({ asset, lendingMarket, reserve, depositGroup }: Props) => {
               >
                 <NumberInputField />
               </NumberInput>
+              {balance?.balance === 0 && reserve?.symbol === "SOL" && (
+                <Link href="https://faucet.solana.com/" isExternal>
+                  <Box my="10px" float="right">
+                    Airdrop devnet SOL: faucet.solana.com
+                  </Box>
+                </Link>
+              )}
+              {overMax && (
+                <Box float="right">{`You cannot borrow more than ${borrowMax} ${reserve?.symbol}`}</Box>
+              )}
             </Box>
           </ModalBody>
           <ModalFooter>
@@ -280,7 +306,7 @@ const Reserve = ({ asset, lendingMarket, reserve, depositGroup }: Props) => {
               </Tooltip>
             ) : (
               <Button
-                isDisabled={!amount}
+                isDisabled={!amount || overMax}
                 onClick={() => txMutation.mutate()}
                 isLoading={txMutation.isLoading}
               >

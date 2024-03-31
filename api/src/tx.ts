@@ -51,15 +51,6 @@ const LENDING_MARKET = new PublicKey(
   "EECvYiBQ21Tco5NSVUMHpcfKbkAcAAALDFWpGTUXJEUn"
 );
 
-const oracles = {
-  USDC: new PublicKey("8VpyMotVBQbVXdRPiKgmvftqmLVNayM4ZamEN7YZ2SWi"),
-  USDT: new PublicKey("DoYnB3k4dfDmh3tgZvUUCsd9548CWBhAJwzyKWiDDj5f"),
-  SOL: new PublicKey("B74LxjLTd4XDHe2YxC5roQvNmqnPQ5W45afhF2UMCSSU"),
-  JitoSOL: new PublicKey("9HhpJ6zCqKA82fUgPrNx4KoQv4WrJQ9UbS7uFSqAxZLt"),
-  mSOL: new PublicKey("5M6UFJbWrpAkddr3tdSaf9egSsEhwZAZRTyLdjcaxp4p"),
-  bSOL: new PublicKey("FBwd4ar6hQugVXjzX21SABSLXtzoJ5rnyb6bQBkFLyMp"),
-};
-
 export const deposit = async (req, res) => {
   const { pubkey, reserve: reserveKey, amount, ticker } = req.body;
   const user = new PublicKey(pubkey);
@@ -155,6 +146,20 @@ export const deposit = async (req, res) => {
   const obl = obligations?.[0];
   if (obl) {
     ixs.push(...buildRefreshObligationIxs(obl, reserve));
+  } else {
+    ixs.push(
+      createRefreshReserveInstruction({
+        reserve: reserve,
+        lendingMarket: LENDING_MARKET,
+        pythOracle: new PublicKey(ORACLES[reserve.toBase58()]),
+      })
+    );
+    ixs.push(
+      createRefreshObligationInstruction({
+        lendingMarket: LENDING_MARKET,
+        obligation,
+      })
+    );
   }
 
   ixs.push(
@@ -740,7 +745,7 @@ const getALTKeys = (user: PublicKey, performer: PublicKey) => {
 
 export const buildRefreshObligationIxs = (
   obl: KaminoObligation,
-  targetReserve: PublicKey,
+  targetReserve: PublicKey = PublicKey.default,
   forceTargetInRefresh = false
 ): TransactionInstruction[] => {
   const ixs: TransactionInstruction[] = [];
@@ -763,6 +768,7 @@ export const buildRefreshObligationIxs = (
     } else {
       targetInRemaining = true;
     }
+
     anchorRemainingAccounts.push({
       pubkey: res,
       isSigner: false,
@@ -771,21 +777,23 @@ export const buildRefreshObligationIxs = (
   }
 
   // obligation data might not have target deposit if composite ix
-  if (forceTargetInRefresh && !targetInRemaining) {
-    anchorRemainingAccounts.push({
-      pubkey: targetReserve,
-      isSigner: false,
-      isWritable: false,
-    });
-  }
+  if (!targetReserve.equals(PublicKey.default)) {
+    if (forceTargetInRefresh && !targetInRemaining) {
+      anchorRemainingAccounts.push({
+        pubkey: targetReserve,
+        isSigner: false,
+        isWritable: false,
+      });
+    }
 
-  ixs.push(
-    createRefreshReserveInstruction({
-      reserve: targetReserve,
-      lendingMarket: LENDING_MARKET,
-      pythOracle: new PublicKey(ORACLES[targetReserve.toBase58()]),
-    })
-  );
+    ixs.push(
+      createRefreshReserveInstruction({
+        reserve: targetReserve,
+        lendingMarket: LENDING_MARKET,
+        pythOracle: new PublicKey(ORACLES[targetReserve.toBase58()]),
+      })
+    );
+  }
 
   ixs.push(
     createRefreshObligationInstruction({

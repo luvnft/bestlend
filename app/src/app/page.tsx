@@ -34,7 +34,7 @@ import {
 import { useWallet, useConnection } from "@solana/wallet-adapter-react";
 import { PublicKey } from "@solana/web3.js";
 import { useEffect, useState } from "react";
-import { useQuery } from "react-query";
+import { useQuery, useQueryClient } from "react-query";
 
 const groups: [string, Asset[]][] = [
   ["Stables", STABLES],
@@ -46,6 +46,7 @@ export default function Home() {
   const { connection } = useConnection();
   const [checkForUpdates, setCheckForUpdates] = useState(false);
   const toast = useToast();
+  const queryClient = useQueryClient();
 
   useEffect(() => {
     if (publicKey) {
@@ -68,11 +69,12 @@ export default function Home() {
     if (data?.signature) {
       toast({
         title: data.message,
-        description: data.details,
+        description: `${data.details} (Amount: ${data.amount})`,
         status: "success",
         duration: 10_000,
         isClosable: true,
       });
+      queryClient.invalidateQueries({ queryKey: ["getObligation"] });
       db.publishedActions
         .add({
           message: data.message,
