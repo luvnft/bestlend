@@ -77,8 +77,8 @@ export const checkForUpdate = async (req, res) => {
   }
 
   for (const deposit of obl.getDeposits()) {
-    // ignore if less than a dollar
-    if (deposit.marketValueRefreshed.lt(new Decimal(1))) {
+    // ignore really small amounts
+    if (deposit.marketValueRefreshed.lt(new Decimal(0.1))) {
       continue;
     }
 

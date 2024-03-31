@@ -104,7 +104,7 @@ const Reserve = ({ asset, lendingMarket, reserve, depositGroup }: Props) => {
     asset.asset_group === AssetGroup.STABLE
       ? Math.min(obligation.data?.borrowLeft ?? 100, 100)
       : 1;
-  const overMax = btnText === "Borrow" && amount > borrowMax;
+  const overMax = !isDeposit && amount > borrowMax && isDepositBorrowAction;
 
   const getAction = () => {
     if (isDeposit || !bestlendAccount.isSuccess)
