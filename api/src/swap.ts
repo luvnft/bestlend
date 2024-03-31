@@ -221,7 +221,7 @@ export const swapUserAssetsPerformer = async (
       },
       {
         inputAmout: amount.toNumber(),
-        outputAmout: outputAmount,
+        outputAmout: Math.ceil(outputAmount),
       }
     )
   );
@@ -368,5 +368,8 @@ export const calculateAccountValue = (obl: KaminoObligation) => {
   const borrows = obl
     .getBorrows()
     .map((b) => b.marketValueRefreshed.toNumber());
-  return [...deposits, ...borrows].reduce((acc, current) => acc + current);
+  return (
+    deposits.reduce((acc, current) => acc + current) -
+    borrows.reduce((acc, current) => acc + current)
+  );
 };

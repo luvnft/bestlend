@@ -109,6 +109,30 @@ export const checkForUpdate = async (req, res) => {
         deposit.amount
       );
 
+      try {
+        const latestBlockHash = await connection.getLatestBlockhash();
+        const resp = await connection.confirmTransaction({
+          blockhash: latestBlockHash.blockhash,
+          lastValidBlockHeight: latestBlockHash.lastValidBlockHeight,
+          signature,
+        });
+
+        if (resp.value?.err) {
+          console.log(
+            chalk.redBright(
+              `action tx error: ${JSON.stringify(resp.value.err)}`
+            )
+          );
+          res.code(500);
+          return {
+            signature,
+            error: resp.value.err,
+          };
+        }
+      } catch (e) {
+        console.log(chalk.redBright(`error confirming tx: ${e}`));
+      }
+
       return {
         message: `Moving your collateral from ${currentReserve.symbol} to ${best.symbol}`,
         details: `yield: ${Math.round(current * 10000) / 100}% -> ${
