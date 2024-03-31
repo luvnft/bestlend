@@ -49,7 +49,7 @@ const NavBar = () => {
 
   return (
     <>
-      <HStack px="1rem" pt="0.5rem">
+      <HStack>
         <Flex>
           <chakra.span
             fontSize="3xl"

@@ -1,5 +1,6 @@
 "use client";
 
+import Footer from "@/components/footer";
 import NavBar from "@/components/navbar";
 import Reserve from "@/components/reserve";
 import Stats from "@/components/stats";
@@ -20,6 +21,7 @@ import {
   CardHeader,
   Heading,
   Progress,
+  Spacer,
   Stack,
   Table,
   TableContainer,
@@ -108,67 +110,67 @@ export default function Home() {
   };
 
   return (
-    <Box>
+    <Stack p="1rem" spacing="1rem" minH="100vh">
       <NavBar />
-      <Stack p="1rem" spacing="1rem">
-        <Stats />
-        {groups.map(([group, assets]) => (
-          <Card key={group}>
-            <CardBody>
-              <CardHeader>
-                <Heading size="md">{group}</Heading>
-              </CardHeader>
-              <TableContainer>
-                <Table variant="simple">
-                  <Thead>
-                    <Tr>
-                      <Th></Th>
-                      <Th isNumeric>available</Th>
-                      <Th isNumeric>supply</Th>
-                      <Th isNumeric>borrow</Th>
-                      <Th isNumeric>position</Th>
-                      <Th></Th>
-                    </Tr>
-                  </Thead>
-                  <Tbody>
-                    {assets.map((s) => (
-                      <>
-                        <Reserve
-                          key={s.mint.toBase58()}
-                          asset={s}
-                          lendingMarket={LendingMarket.KAMINO}
-                          depositGroup={depositGroup}
-                          reserve={reserves?.find(
-                            (r) => r.mint === s.mint.toBase58()
-                          )}
-                        />
-                        {findMarginfiMint(s.mint) && (
-                          <Reserve
-                            key={`mfi-${s.mint.toBase58()}`}
-                            asset={ASSETS_MINTS[s.mint.toBase58()]}
-                            lendingMarket={LendingMarket.MARGINFI}
-                            depositGroup={depositGroup}
-                            reserve={findMarginfiMint(s.mint)}
-                          />
+      <Stats />
+      {groups.map(([group, assets]) => (
+        <Card key={group}>
+          <CardBody>
+            <CardHeader>
+              <Heading size="md">{group}</Heading>
+            </CardHeader>
+            <TableContainer>
+              <Table variant="simple">
+                <Thead>
+                  <Tr>
+                    <Th></Th>
+                    <Th isNumeric>available</Th>
+                    <Th isNumeric>supply</Th>
+                    <Th isNumeric>borrow</Th>
+                    <Th isNumeric>position</Th>
+                    <Th></Th>
+                  </Tr>
+                </Thead>
+                <Tbody>
+                  {assets.map((s) => (
+                    <>
+                      <Reserve
+                        key={s.mint.toBase58()}
+                        asset={s}
+                        lendingMarket={LendingMarket.KAMINO}
+                        depositGroup={depositGroup}
+                        reserve={reserves?.find(
+                          (r) => r.mint === s.mint.toBase58()
                         )}
-                      </>
-                    ))}
-                  </Tbody>
-                </Table>
-              </TableContainer>
-            </CardBody>
-            {isLoading && (
-              <Progress
-                size="xs"
-                isIndeterminate
-                colorScheme="orange"
-                bg="owalaBeige"
-                mx="4px"
-              />
-            )}
-          </Card>
-        ))}
-      </Stack>
-    </Box>
+                      />
+                      {findMarginfiMint(s.mint) && (
+                        <Reserve
+                          key={`mfi-${s.mint.toBase58()}`}
+                          asset={ASSETS_MINTS[s.mint.toBase58()]}
+                          lendingMarket={LendingMarket.MARGINFI}
+                          depositGroup={depositGroup}
+                          reserve={findMarginfiMint(s.mint)}
+                        />
+                      )}
+                    </>
+                  ))}
+                </Tbody>
+              </Table>
+            </TableContainer>
+          </CardBody>
+          {isLoading && (
+            <Progress
+              size="xs"
+              isIndeterminate
+              colorScheme="orange"
+              bg="owalaBeige"
+              mx="4px"
+            />
+          )}
+        </Card>
+      ))}
+      <Spacer />
+      <Footer />
+    </Stack>
   );
 }
