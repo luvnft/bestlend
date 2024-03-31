@@ -8,6 +8,7 @@ import { fmtCurrency, fmtDecimals, fmtPct } from "@/utils/fmt";
 import { SunIcon } from "@chakra-ui/icons";
 import {
   Box,
+  Button,
   Card,
   CardBody,
   Flex,
@@ -23,7 +24,7 @@ import {
 import { useWallet } from "@solana/wallet-adapter-react";
 import { useQuery } from "react-query";
 
-const Stats = () => {
+const Stats = ({ faqsOpen }: { faqsOpen: () => void }) => {
   const { publicKey } = useWallet();
 
   const solanaPriceQuery = useQuery("getSolanaPrice", getSolanaPrice);
@@ -62,6 +63,16 @@ const Stats = () => {
           another knowing your position is optimized regardless of changes in
           staking or borrow rates.
         </Text>
+        <Button
+          mt="10px"
+          fontSize="xl"
+          fontWeight={900}
+          variant="link"
+          color="owalaBrown"
+          onClick={faqsOpen}
+        >
+          Learn More
+        </Button>
       </Box>
     );
   }

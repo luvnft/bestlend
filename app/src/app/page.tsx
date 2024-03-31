@@ -19,6 +19,12 @@ import {
   Card,
   CardBody,
   CardHeader,
+  Drawer,
+  DrawerBody,
+  DrawerCloseButton,
+  DrawerContent,
+  DrawerHeader,
+  DrawerOverlay,
   Heading,
   Progress,
   Spacer,
@@ -29,6 +35,7 @@ import {
   Th,
   Thead,
   Tr,
+  useDisclosure,
   useToast,
 } from "@chakra-ui/react";
 import { useWallet, useConnection } from "@solana/wallet-adapter-react";
@@ -47,6 +54,9 @@ export default function Home() {
   const [checkForUpdates, setCheckForUpdates] = useState(false);
   const toast = useToast();
   const queryClient = useQueryClient();
+
+  // FAQs drawer
+  const { isOpen, onOpen, onClose } = useDisclosure();
 
   useEffect(() => {
     if (publicKey) {
@@ -114,7 +124,7 @@ export default function Home() {
   return (
     <Stack p="1rem" spacing="1rem" minH="100vh">
       <NavBar />
-      <Stats />
+      <Stats faqsOpen={onOpen} />
       {groups.map(([group, assets]) => (
         <Card key={group}>
           <CardBody>
@@ -172,7 +182,15 @@ export default function Home() {
         </Card>
       ))}
       <Spacer />
-      <Footer />
+      <Footer faqsOpen={onOpen} />
+      <Drawer isOpen={isOpen} placement="right" onClose={onClose} size="lg">
+        <DrawerOverlay />
+        <DrawerContent>
+          <DrawerCloseButton />
+          <DrawerHeader>FAQs</DrawerHeader>
+          <DrawerBody>Stuff</DrawerBody>
+        </DrawerContent>
+      </Drawer>
     </Stack>
   );
 }
