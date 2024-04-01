@@ -15,6 +15,7 @@ import {
   WalletProvider,
 } from "@solana/wallet-adapter-react";
 import { QueryClient, QueryClientProvider } from "react-query";
+import { Analytics } from "@vercel/analytics/react";
 
 const { definePartsStyle, defineMultiStyleConfig } =
   createMultiStyleConfigHelpers(cardAnatomy.keys);
@@ -129,6 +130,7 @@ export function Providers({ children }: { children: React.ReactNode }) {
         <ConnectionProvider endpoint={endpoint}>
           <WalletProvider wallets={[]}>{children}</WalletProvider>
         </ConnectionProvider>
+        <Analytics />
       </ChakraProvider>
     </QueryClientProvider>
   );

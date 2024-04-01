@@ -19,6 +19,7 @@
     "@solana/wallet-adapter-react-ui": "^0.9.35",
     "@solana/wallet-adapter-wallets": "^0.19.31",
     "@solana/web3.js": "^1.91.0",
+    "@vercel/analytics": "^1.2.2",
     "axios": "^1.6.8",
     "decimal.js": "^10.4.3",
     "dexie": "^4.0.1",
