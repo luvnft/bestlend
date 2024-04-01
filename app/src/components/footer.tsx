@@ -1,19 +1,5 @@
-import {
-  Button,
-  Drawer,
-  DrawerBody,
-  DrawerCloseButton,
-  DrawerContent,
-  DrawerFooter,
-  DrawerHeader,
-  DrawerOverlay,
-  HStack,
-  IconButton,
-  Input,
-  Spacer,
-  useDisclosure,
-} from "@chakra-ui/react";
-import { GithubLink, TwitterLink } from "./github";
+import { HStack, IconButton, Spacer } from "@chakra-ui/react";
+import { GithubLink, TelegramLink, TwitterLink } from "./link_icons";
 import { InfoOutlineIcon } from "@chakra-ui/icons";
 
 const Footer = ({ faqsOpen }: { faqsOpen: () => void }) => {
@@ -21,6 +7,7 @@ const Footer = ({ faqsOpen }: { faqsOpen: () => void }) => {
     <HStack>
       <Spacer />
       <TwitterLink />
+      <TelegramLink />
       <GithubLink />
       <IconButton
         icon={<InfoOutlineIcon />}
