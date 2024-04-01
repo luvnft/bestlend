@@ -1,5 +1,6 @@
 "use client";
 
+import FAQs from "@/components/faqs";
 import Footer from "@/components/footer";
 import NavBar from "@/components/navbar";
 import Reserve from "@/components/reserve";
@@ -11,7 +12,7 @@ import {
   getMarginfiReserves,
 } from "@/requests/backend";
 import { getBestLendAccount } from "@/requests/bestlend";
-import { ASSETS, ASSETS_MINTS, LSTS, STABLES } from "@/utils/consts";
+import { ASSETS_MINTS, LSTS, STABLES } from "@/utils/consts";
 import { db } from "@/utils/db";
 import { Asset, AssetGroup, LendingMarket } from "@/utils/models";
 import {
@@ -60,7 +61,7 @@ export default function Home() {
 
   useEffect(() => {
     if (publicKey) {
-      setTimeout(() => setCheckForUpdates(true), 10_000);
+      setTimeout(() => setCheckForUpdates(true), 30_000);
     }
   }, [publicKey]);
 
@@ -188,7 +189,9 @@ export default function Home() {
         <DrawerContent>
           <DrawerCloseButton />
           <DrawerHeader>FAQs</DrawerHeader>
-          <DrawerBody>Stuff</DrawerBody>
+          <DrawerBody>
+            <FAQs />
+          </DrawerBody>
         </DrawerContent>
       </Drawer>
     </Stack>
