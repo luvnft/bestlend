@@ -14,8 +14,15 @@ import {
   ConnectionProvider,
   WalletProvider,
 } from "@solana/wallet-adapter-react";
-import { QueryClient, QueryClientProvider } from "react-query";
+import {
+  MutationCache,
+  QueryCache,
+  QueryClient,
+  QueryClientProvider,
+} from "react-query";
 import { Analytics } from "@vercel/analytics/react";
+import { withScope, captureException } from "@sentry/nextjs";
+import { useMemo } from "react";
 
 const { definePartsStyle, defineMultiStyleConfig } =
   createMultiStyleConfigHelpers(cardAnatomy.keys);
@@ -118,6 +125,32 @@ const theme = extendTheme({ config, colors, styles, components });
 
 const queryClient = new QueryClient({
   defaultOptions: { queries: { retry: 1 } },
+  mutationCache: new MutationCache({
+    onError: (err, _variables, _context, mutation) => {
+      withScope((scope) => {
+        scope.setContext("mutation", {
+          mutationId: mutation.mutationId,
+          variables: mutation.state.variables,
+        });
+        if (mutation.options.mutationKey) {
+          scope.setFingerprint(
+            // Duplicate to prevent modification
+            Array.from(mutation.options.mutationKey) as string[]
+          );
+        }
+        captureException(err);
+      });
+    },
+  }),
+  queryCache: new QueryCache({
+    onError: (err, query) => {
+      withScope((scope) => {
+        scope.setContext("query", { queryHash: query.queryHash });
+        scope.setFingerprint([query.queryHash.replaceAll(/[0-9]/g, "0")]);
+        captureException(err);
+      });
+    },
+  }),
 });
 
 export function Providers({ children }: { children: React.ReactNode }) {

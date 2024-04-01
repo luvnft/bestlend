@@ -3,6 +3,7 @@
 // https://docs.sentry.io/platforms/javascript/guides/nextjs/
 
 import * as Sentry from "@sentry/nextjs";
+import { extraErrorDataIntegration } from "@sentry/integrations";
 
 Sentry.init({
   dsn: "https://71fadd69af3f86ab14439fd9bdd2353e@o981824.ingest.us.sentry.io/4507013845286912",
@@ -26,5 +27,6 @@ Sentry.init({
       maskAllText: true,
       blockAllMedia: true,
     }),
+    extraErrorDataIntegration(),
   ],
 });
