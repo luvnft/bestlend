@@ -43,6 +43,7 @@ import { useMutation, useQuery, useQueryClient } from "react-query";
 import { fmtCompact, fmtPct } from "@/utils/fmt";
 import { getBestLendAccount } from "@/requests/bestlend";
 import { db } from "@/utils/db";
+import { track } from "@vercel/analytics";
 
 interface Props {
   asset: Asset;
@@ -158,6 +159,9 @@ const Reserve = ({ asset, lendingMarket, reserve, depositGroup }: Props) => {
           });
         }
       }
+      track("walletAction", {
+        action: isDepositBorrowAction ? btnText : otherBtnText,
+      });
       queryClient.invalidateQueries({ queryKey: ["getObligation"] });
       onClose();
     },

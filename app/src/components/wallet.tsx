@@ -19,6 +19,7 @@ import { useWallet, Wallet } from "@solana/wallet-adapter-react";
 import { PublicKey } from "@solana/web3.js";
 import { useEffect, useState } from "react";
 import { useQueryClient } from "react-query";
+import { track } from "@vercel/analytics";
 
 const WalletSelect = ({ small }: { small?: boolean }) => {
   const { isOpen, onOpen, onClose } = useDisclosure();
@@ -79,6 +80,7 @@ const WalletSelect = ({ small }: { small?: boolean }) => {
               })
               .finally(async () => {
                 await queryClient.clear();
+                track("connectWallet");
                 onClose();
               });
           }}
