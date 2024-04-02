@@ -86,25 +86,28 @@ export const checkForUpdate = async (req, res) => {
       res.mint.equals(deposit.mintAddress)
     );
 
+    const isStable = currentReserve.symbol.includes("USD");
+
     // find best rate that includes staking
-    const best = reserves.sort(
-      (a, b) =>
-        b.supplyAPR + getRate(b.symbol) - (a.supplyAPR + getRate(a.symbol))
-    )[0];
+    const best = reserves
+      .filter((res) => res.symbol.includes("USD") === isStable)
+      .sort(
+        (a, b) =>
+          b.supplyAPR + getRate(b.symbol) - (a.supplyAPR + getRate(a.symbol))
+      )[0];
 
     const current = currentReserve.supplyAPR + getRate(currentReserve.symbol);
     const potential = best.supplyAPR + getRate(best.symbol);
 
     const ltv = obl.loanToValue();
     const mult = new Decimal(1).sub(ltv.div(new Decimal(0.78)));
-    const amt = deposit.amount.mul(mult).floor();
+    let amt = deposit.amount.mul(mult).floor();
+    amt = Decimal.max(isStable ? 1000e6 : 5e9, amt);
 
     // move user to better asset
     if (potential > current) {
       console.log(
-        chalk.greenBright(
-          `getting ${current} but could get ${potential}\namount:${amt.toString()}`
-        )
+        chalk.greenBright(`getting ${current} but could get ${potential}`)
       );
 
       const signature = await swapUserAssetsPerformer(

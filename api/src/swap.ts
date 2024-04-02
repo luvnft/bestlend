@@ -201,7 +201,7 @@ export const swapUserAssetsPerformer = async (
 
   const outputMult =
     PRICES[depositReserve.toBase58()] / PRICES[withdrawReserve.toBase58()];
-  const outputAmount = amount.toNumber() / outputMult;
+  const outputAmount = Math.ceil(amount.toNumber() / outputMult);
 
   // swap
   ixs.push(
@@ -216,8 +216,19 @@ export const swapUserAssetsPerformer = async (
       },
       {
         inputAmout: amount.toNumber(),
-        outputAmout: Math.ceil(outputAmount),
+        outputAmout: outputAmount,
       }
+    )
+  );
+
+  console.log(
+    chalk.greenBright(
+      JSON.stringify({
+        withdrawAmount: amount.toNumber(),
+        depositAmount: outputAmount,
+        depositPrice: PRICES[depositReserve.toBase58()],
+        withdrawPrice: PRICES[withdrawReserve.toBase58()],
+      })
     )
   );
 
@@ -379,7 +390,7 @@ export const calculateAccountValue = (obl: KaminoObligation) => {
     .getBorrows()
     .map((b) => b.marketValueRefreshed.toNumber());
   return (
-    deposits.reduce((acc, current) => acc + current) -
-    borrows.reduce((acc, current) => acc + current)
+    deposits.reduce((acc, current) => acc + current, 0) -
+    borrows.reduce((acc, current) => acc + current, 0)
   );
 };
