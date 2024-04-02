@@ -39,6 +39,7 @@ import {
   useDisclosure,
   useToast,
 } from "@chakra-ui/react";
+import { setUser } from "@sentry/nextjs";
 import { useWallet, useConnection } from "@solana/wallet-adapter-react";
 import { PublicKey } from "@solana/web3.js";
 import { useEffect, useState } from "react";
@@ -62,6 +63,7 @@ export default function Home() {
   useEffect(() => {
     if (publicKey) {
       setTimeout(() => setCheckForUpdates(true), 30_000);
+      setUser({ id: publicKey.toBase58(), username: publicKey.toBase58() });
     }
   }, [publicKey]);
 

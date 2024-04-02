@@ -12,7 +12,6 @@ import {
 import fs from "fs";
 import { keys } from "../keys";
 import { keyPairFromB58 } from "../tests/utils";
-import { ShyftSdk, Network } from "@shyft-to/js";
 import { createWritePythPriceInstruction } from "../clients/mock-pyth/src";
 import {
   PROGRAM_ID as KLEND_PROGRAM_ID,
@@ -36,6 +35,14 @@ import {
   getOrCreateAssociatedTokenAccount,
   mintTo,
 } from "../node_modules/@solana/spl-token";
+import { createUmi } from "@metaplex-foundation/umi-bundle-defaults";
+import { createMetadataAccountV3 } from "@metaplex-foundation/mpl-token-metadata";
+import {
+  fromWeb3JsKeypair,
+  fromWeb3JsPublicKey,
+} from "@metaplex-foundation/umi-web3js-adapters";
+import { createSignerFromKeypair } from "@metaplex-foundation/umi";
+import { base58 } from "@metaplex-foundation/umi/serializers";
 
 const defaultKeypairLocation = "/home/sc4recoin/.config/solana/id.json";
 const ASSETS = ["USDC", "USDT", "SOL", "JitoSOL", "mSOL", "bSOL"];
@@ -374,6 +381,27 @@ cli.command("logSwapperBalances").action(async () => {
   }
 });
 
+cli.command("tokenMetadata").action(async () => {
+  const images = {
+    USDC: "https://assets.coingecko.com/coins/images/6319/standard/usdc.png",
+    USDT: "https://assets.coingecko.com/coins/images/325/standard/Tether.png",
+    JitoSOL: "https://s2.coinmarketcap.com/static/img/coins/64x64/22533.png",
+    mSOL: "https://assets.coingecko.com/coins/images/17752/standard/mSOL.png",
+    bSOL: "https://assets.coingecko.com/coins/images/26636/standard/blazesolana.png",
+  };
+
+  for (const ticker of ["JitoSOL", "mSOL", "bSOL"]) {
+    const offChainMetadata = {
+      name: ticker,
+      symbol: ticker,
+      description: `${ticker} devnet`,
+      image: images[ticker],
+    };
+    console.log(`updating metadata on ${ticker} (${mints[ticker]})`);
+    await uploadMetadataForToken(offChainMetadata);
+  }
+});
+
 cli.command("userDeposit").action(async () => {
   const wallet = loadKeypair(defaultKeypairLocation);
   const lendingMarket = keyPairFromB58(keys.lendingMarket);
@@ -526,6 +554,40 @@ cli.command("userDeposit").action(async () => {
   let signature = await connection.sendTransaction(tx, [wallet, user]);
   console.log({ signature, targetIndex: i });
 });
+
+const uploadMetadataForToken = async (offChainMetadata: any) => {
+  const umi = createUmi(rpc);
+  const web3jsKeyPair = loadKeypair(defaultKeypairLocation);
+  const keypair = fromWeb3JsKeypair(web3jsKeyPair);
+  const signer = createSignerFromKeypair(umi, keypair);
+  umi.identity = signer;
+  umi.payer = signer;
+
+  let CreateMetadataAccountV3Args = {
+    mint: fromWeb3JsPublicKey(new PublicKey(mints[offChainMetadata.symbol])),
+    mintAuthority: signer,
+    payer: signer,
+    updateAuthority: fromWeb3JsKeypair(web3jsKeyPair).publicKey,
+    data: {
+      name: offChainMetadata.name,
+      symbol: offChainMetadata.symbol,
+      uri: `https://bestlend-api.fly.dev/token_metadata/${offChainMetadata.symbol}`,
+      sellerFeeBasisPoints: 0,
+      creators: null,
+      collection: null,
+      uses: null,
+    },
+    isMutable: false,
+    collectionDetails: null,
+  };
+
+  let instruction = createMetadataAccountV3(umi, CreateMetadataAccountV3Args);
+
+  const transaction = await instruction.buildAndSign(umi);
+  const transactionSignature = await umi.rpc.sendTransaction(transaction);
+  const [signature] = base58.deserialize(transactionSignature);
+  console.log({ signature, ticker: offChainMetadata.symbol });
+};
 
 const loadKeypair = (filename: string) => {
   const walletKey = JSON.parse(fs.readFileSync(filename, "utf-8"));

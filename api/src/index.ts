@@ -7,6 +7,7 @@ import Fastify from "fastify";
 import cors from "@fastify/cors";
 import { bestlendStats, checkForUpdate, stakingRates } from "./bestlend";
 import { marginfiMarket } from "./marginfi";
+import { tokenMetadata } from "./metadata";
 
 const fastify = Fastify({
   logger: true,
@@ -38,6 +39,8 @@ fastify.post("/txs/deposit", deposit);
 fastify.post("/txs/borrow", borrow);
 fastify.post("/txs/repay", repay);
 fastify.post("/txs/withdraw", withdraw);
+
+fastify.get("/token_metadata/:ticker", tokenMetadata);
 
 fastify.listen({ port: PORT, host: "0.0.0.0" }, (err) => {
   if (err) {
