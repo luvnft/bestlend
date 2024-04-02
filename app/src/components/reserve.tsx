@@ -104,7 +104,12 @@ const Reserve = ({ asset, lendingMarket, reserve, depositGroup }: Props) => {
   // limit how much users can take from reserves
   const amountMax =
     asset.asset_group === AssetGroup.STABLE
-      ? Math.min(obligation.data?.borrowLeft ?? 100, 100)
+      ? Math.min(
+          !isDeposit && isDepositBorrowAction && obligation.data?.borrowLeft
+            ? obligation.data?.borrowLeft
+            : 100,
+          100
+        )
       : 1;
   const overMax = amount > amountMax && isDepositBorrowAction;
 
