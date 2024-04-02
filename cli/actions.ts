@@ -41,6 +41,15 @@ const defaultKeypairLocation = "/home/sc4recoin/.config/solana/id.json";
 const ASSETS = ["USDC", "USDT", "SOL", "JitoSOL", "mSOL", "bSOL"];
 const PRICES = [9998, 9977, 1267000, 1372000, 1471000, 1403000];
 
+const mints = {
+  USDC: "G1oSn38tx54RsruDY68as9PsPAryKYh63q6g29JJ5AmJ",
+  USDT: "5CWwsNUwCNkz2d8VFLQ6FdJGAxjjJEY1EEjSBArHjVKn",
+  SOL: "So11111111111111111111111111111111111111112",
+  JitoSOL: "hnfoBeesFnbNQupjFpE8MSS2LpJ3zGeqEkmfPYqwXV1",
+  mSOL: "DHEiD7eew9gnaRujuEM5PR9SbvKdhSoS91dRJm7rKYMS",
+  bSOL: "Hck546Ds2XdnqLYfR2Mp7N4vbFtMecF3sgHVFZ2s9yYc",
+};
+
 const rpc = `https://devnet.helius-rpc.com/?api-key=${process.env.HELIUS_KEY}`;
 const connection = new Connection(rpc);
 
@@ -271,15 +280,6 @@ cli.command("mintTokens").action(async () => {
   const wallet = loadKeypair(defaultKeypairLocation);
   const userKeys = Object.values(keys.users);
 
-  const mints = {
-    USDC: "G1oSn38tx54RsruDY68as9PsPAryKYh63q6g29JJ5AmJ",
-    USDT: "5CWwsNUwCNkz2d8VFLQ6FdJGAxjjJEY1EEjSBArHjVKn",
-    SOL: "So11111111111111111111111111111111111111112",
-    JitoSOL: "hnfoBeesFnbNQupjFpE8MSS2LpJ3zGeqEkmfPYqwXV1",
-    mSOL: "DHEiD7eew9gnaRujuEM5PR9SbvKdhSoS91dRJm7rKYMS",
-    bSOL: "Hck546Ds2XdnqLYfR2Mp7N4vbFtMecF3sgHVFZ2s9yYc",
-  };
-
   const [tokenPDA] = PublicKey.findProgramAddressSync(
     [Buffer.from("token_holder")],
     SWAP_PROGRAM_ID
@@ -346,6 +346,32 @@ cli.command("mintTokens").action(async () => {
         i < 1 ? 100e9 : 10000e6
       );
     }
+});
+
+cli.command("logSwapperBalances").action(async () => {
+  const wallet = loadKeypair(defaultKeypairLocation);
+
+  const [tokenPDA] = PublicKey.findProgramAddressSync(
+    [Buffer.from("token_holder")],
+    SWAP_PROGRAM_ID
+  );
+
+  console.log(tokenPDA.toBase58());
+
+  for (const ticker of Object.keys(mints)) {
+    const ata = await getOrCreateAssociatedTokenAccount(
+      connection,
+      wallet,
+      new PublicKey(mints[ticker]),
+      tokenPDA,
+      true
+    );
+
+    const div = ticker.includes("USD") ? 6 : 9;
+    console.log(
+      `${ticker} -> ${Number(ata.amount) / 10 ** div}\t(${ata.address})`
+    );
+  }
 });
 
 cli.command("userDeposit").action(async () => {
