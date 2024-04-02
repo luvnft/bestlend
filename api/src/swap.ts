@@ -157,9 +157,6 @@ export const swapUserAssetsPerformer = async (
 
   ixs.push(...buildRefreshObligationIxs(obl, withdrawReserve));
 
-  // if we remove all then the obligation will be closed
-  amount = amount.sub(new Decimal(1));
-
   ixs.push(
     createKlendWithdrawInstruction(
       {

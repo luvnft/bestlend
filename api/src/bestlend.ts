@@ -102,7 +102,11 @@ export const checkForUpdate = async (req, res) => {
     const ltv = obl.loanToValue();
     const mult = new Decimal(1).sub(ltv.div(new Decimal(0.78)));
     let amt = deposit.amount.mul(mult).floor();
-    amt = Decimal.max(isStable ? 1000e6 : 5e9, amt);
+    amt = Decimal.min(isStable ? 1000e6 : 5e9, amt);
+
+    // if we remove all then the obligation will be closed
+    // amt = amt.sub(new Decimal(isStable ? 0.01e6 : 0.0001e9));
+    amt = amt.sub(new Decimal(1));
 
     // move user to better asset
     if (potential > current) {

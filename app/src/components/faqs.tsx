@@ -6,7 +6,7 @@ const FAQs = () => {
     <Stack spacing="2rem">
       <Question
         title="What is Bestlend?"
-        content="Bestlend maximizes your lending and borrow rates to save you time and money. It will find the best rates from different lending apps on Solana automatically and move your funds for you. Bestlend will also swap between correlated assets so you can deposit any stablecoin or LST and know you're getting the best yeild."
+        content="Bestlend maximizes your lending and borrow rates to save you time and money. It will find the best rates from different lending apps on Solana automatically and move your funds for you. Bestlend will also swap between correlated assets so you can deposit any stablecoin or LST and know you're getting the best yield."
       />
       <Question
         title="How is Bestlend different from Flexlend?"

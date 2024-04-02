@@ -15,6 +15,7 @@ import {
   Center,
   Flex,
   HStack,
+  IconButton,
   Image,
   Link,
   Modal,
@@ -34,7 +35,7 @@ import {
   useDisclosure,
   useToast,
 } from "@chakra-ui/react";
-import { SunIcon } from "@chakra-ui/icons";
+import { RepeatIcon, SunIcon } from "@chakra-ui/icons";
 import { useConnection, useWallet } from "@solana/wallet-adapter-react";
 import Wallet from "./wallet";
 import { useGetTokenBalances } from "@/requests/rpc";
@@ -101,11 +102,11 @@ const Reserve = ({ asset, lendingMarket, reserve, depositGroup }: Props) => {
   if (!bestlendAccount.isSuccess) btnText = "Deposit";
 
   // limit how much users can take from reserves
-  const borrowMax =
+  const amountMax =
     asset.asset_group === AssetGroup.STABLE
       ? Math.min(obligation.data?.borrowLeft ?? 100, 100)
       : 1;
-  const overMax = !isDeposit && amount > borrowMax && isDepositBorrowAction;
+  const overMax = amount > amountMax && isDepositBorrowAction;
 
   const getAction = () => {
     if (isDeposit || !bestlendAccount.isSuccess)
@@ -282,6 +283,18 @@ const Reserve = ({ asset, lendingMarket, reserve, depositGroup }: Props) => {
               <HStack>
                 <Spacer />
                 {balance && <Box fontSize="sm">Balance: {balance.balance}</Box>}
+                <IconButton
+                  aria-label="update balance"
+                  icon={<RepeatIcon />}
+                  variant="link"
+                  color="owalaBrown"
+                  ml="-10px"
+                  onClick={() => {
+                    queryClient.invalidateQueries({
+                      queryKey: ["getBalance", publicKey],
+                    });
+                  }}
+                />
               </HStack>
               <NumberInput
                 min={0}
@@ -299,7 +312,7 @@ const Reserve = ({ asset, lendingMarket, reserve, depositGroup }: Props) => {
                 </Link>
               )}
               {overMax && (
-                <Box float="right">{`You cannot borrow more than ${borrowMax} ${reserve?.symbol}`}</Box>
+                <Box float="right">{`You cannot ${btnText} more than ${amountMax} ${reserve?.symbol}`}</Box>
               )}
             </Box>
           </ModalBody>

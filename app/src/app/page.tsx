@@ -15,7 +15,10 @@ import { getBestLendAccount } from "@/requests/bestlend";
 import { ASSETS_MINTS, LSTS, STABLES } from "@/utils/consts";
 import { db } from "@/utils/db";
 import { Asset, AssetGroup, LendingMarket } from "@/utils/models";
+import { CloseIcon, InfoIcon } from "@chakra-ui/icons";
 import {
+  Alert,
+  AlertIcon,
   Box,
   Card,
   CardBody,
@@ -26,7 +29,9 @@ import {
   DrawerContent,
   DrawerHeader,
   DrawerOverlay,
+  HStack,
   Heading,
+  IconButton,
   Progress,
   Spacer,
   Stack,
@@ -66,6 +71,22 @@ export default function Home() {
       setUser({ id: publicKey.toBase58(), username: publicKey.toBase58() });
     }
   }, [publicKey]);
+
+  useEffect(() => {
+    setTimeout(() => {
+      if (!toast.isActive("hello"))
+        toast({
+          title: "Welcome to Bestlend!",
+          description:
+            "Bestlend is only available on devnet. Switch your wallet to devnet and airdrop SOL to test the app. Please give feedback on Telegram or Twitter (links a bottom of page)",
+          status: "info",
+          duration: 10000,
+          position: "bottom-left",
+          isClosable: true,
+          id: "hello",
+        });
+    }, 2000);
+  }, []);
 
   const updateQuery = useQuery(
     "getActionUpdate",
