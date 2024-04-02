@@ -90,17 +90,17 @@ const NavBar = () => {
                       </Heading>
                       <Text fontSize="sm">{m.details}</Text>
                       <Text fontSize="sm">{`amount: ${m.amount}`}</Text>
-                      <Button size="sm" variant="outline">
-                        <Link
-                          fontSize="sm"
-                          isExternal
-                          href={`https://solana.fm/tx/${m.signature}?cluster=devnet-alpha`}
-                        >
+                      <Link
+                        fontSize="sm"
+                        isExternal
+                        href={`https://solana.fm/tx/${m.signature}?cluster=devnet-alpha`}
+                      >
+                        <Button size="sm" variant="outline">
                           {m.signature?.slice(0, 8)}...
                           {m.signature?.slice(m.signature?.length - 8)}
                           <ExternalLinkIcon mx="4px" mb="2px" />
-                        </Link>
-                      </Button>
+                        </Button>
+                      </Link>
                       <Text fontSize="xs">{m.ts}</Text>
                     </Stack>
                   </CardBody>

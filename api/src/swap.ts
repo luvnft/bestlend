@@ -274,6 +274,22 @@ export const swapUserAssetsPerformer = async (
     true
   );
 
+  // borrow reserve might not be included
+  if (isBorrow) {
+    if (
+      obl
+        .getBorrows()
+        .findIndex((d) => d.reserveAddress.equals(depositReserve)) === -1
+    ) {
+      obl.borrows.set(depositReserve, {
+        reserveAddress: depositReserve,
+        mintAddress: depositReserveData.liquidity.mintPubkey,
+        amount: new Decimal(0),
+        marketValueRefreshed: new Decimal(0),
+      });
+    }
+  }
+
   ixs.push(...buildRefreshObligationIxs(obl, depositReserve));
 
   if (!isBorrow) {
@@ -339,19 +355,6 @@ export const swapUserAssetsPerformer = async (
         .findIndex((d) => d.reserveAddress.equals(depositReserve)) === -1
     ) {
       obl.deposits.set(depositReserve, {
-        reserveAddress: depositReserve,
-        mintAddress: depositReserveData.liquidity.mintPubkey,
-        amount: new Decimal(0),
-        marketValueRefreshed: new Decimal(0),
-      });
-    }
-  } else {
-    if (
-      obl
-        .getBorrows()
-        .findIndex((d) => d.reserveAddress.equals(depositReserve)) === -1
-    ) {
-      obl.borrows.set(depositReserve, {
         reserveAddress: depositReserve,
         mintAddress: depositReserveData.liquidity.mintPubkey,
         amount: new Decimal(0),
