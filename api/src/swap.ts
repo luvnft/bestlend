@@ -19,7 +19,9 @@ import {
 import {
   BestLendUserAccount,
   PROGRAM_ID,
+  createKlendBorrowInstruction,
   createKlendDepositInstruction,
+  createKlendRepayInstruction,
   createKlendWithdrawInstruction,
   createPostActionInstruction,
   createPreActionInstruction,
@@ -72,7 +74,8 @@ export const swapUserAssetsPerformer = async (
   obl: KaminoObligation,
   withdrawReserve: PublicKey,
   depositReserve: PublicKey,
-  amount: Decimal
+  amount: Decimal,
+  isBorrow = false
 ): Promise<string> => {
   const performer = Keypair.fromSecretKey(
     bs58.decode(process.env.PERFORMER_KEY)
@@ -157,31 +160,57 @@ export const swapUserAssetsPerformer = async (
 
   ixs.push(...buildRefreshObligationIxs(obl, withdrawReserve));
 
-  ixs.push(
-    createKlendWithdrawInstruction(
-      {
-        signer: performer.publicKey,
-        bestlendUserAccount,
-        userDestinationLiquidity: userLiquidityAta.address,
-        userDestinationCollateral: collateralAta.address,
-        instructions: new PublicKey(
-          "Sysvar1nstructions1111111111111111111111111"
-        ),
-        klendProgram: KLEND_PROGRAM_ID,
-        obligation,
-        lendingMarket: new PublicKey(KLEND_MARKET),
-        reserve: withdrawReserve,
-        reserveLiquiditySupply: withdrawReserveData.liquidity.supplyVault,
-        reserveCollateralMint: withdrawReserveData.collateral.mintPubkey,
-        reserveSourceDepositCollateral:
-          withdrawReserveData.collateral.supplyVault,
-        lendingMarketAuthority,
-      },
-      {
-        amount: amount.toNumber(),
-      }
-    )
-  );
+  if (!isBorrow) {
+    ixs.push(
+      createKlendWithdrawInstruction(
+        {
+          signer: performer.publicKey,
+          bestlendUserAccount,
+          userDestinationLiquidity: userLiquidityAta.address,
+          userDestinationCollateral: collateralAta.address,
+          instructions: new PublicKey(
+            "Sysvar1nstructions1111111111111111111111111"
+          ),
+          klendProgram: KLEND_PROGRAM_ID,
+          obligation,
+          lendingMarket: new PublicKey(KLEND_MARKET),
+          reserve: withdrawReserve,
+          reserveLiquiditySupply: withdrawReserveData.liquidity.supplyVault,
+          reserveCollateralMint: withdrawReserveData.collateral.mintPubkey,
+          reserveSourceDepositCollateral:
+            withdrawReserveData.collateral.supplyVault,
+          lendingMarketAuthority,
+        },
+        {
+          amount: amount.toNumber(),
+        }
+      )
+    );
+  } else {
+    ixs.push(
+      createKlendBorrowInstruction(
+        {
+          signer: performer.publicKey,
+          bestlendUserAccount,
+          userDestinationLiquidity: userLiquidityAta.address,
+          instructions: new PublicKey(
+            "Sysvar1nstructions1111111111111111111111111"
+          ),
+          klendProgram: KLEND_PROGRAM_ID,
+          obligation,
+          lendingMarket: new PublicKey(KLEND_MARKET),
+          reserve: withdrawReserve,
+          lendingMarketAuthority,
+          reserveSourceLiquidity: withdrawReserveData.liquidity.supplyVault,
+          borrowReserveLiquidityFeeReceiver:
+            withdrawReserveData.liquidity.feeVault,
+        },
+        {
+          amount: amount.toNumber(),
+        }
+      )
+    );
+  }
 
   const depositReserveData = await Reserve.fromAccountAddress(
     connection,
@@ -225,6 +254,7 @@ export const swapUserAssetsPerformer = async (
         depositAmount: outputAmount,
         depositPrice: PRICES[depositReserve.toBase58()],
         withdrawPrice: PRICES[withdrawReserve.toBase58()],
+        isBorrow,
       })
     )
   );
@@ -246,49 +276,88 @@ export const swapUserAssetsPerformer = async (
 
   ixs.push(...buildRefreshObligationIxs(obl, depositReserve));
 
-  ixs.push(
-    createKlendDepositInstruction(
-      {
-        signer: performer.publicKey,
-        bestlendUserAccount,
-        userSourceLiquidity: outputATA,
-        bestlendUserSourceLiquidity: liquidityAta.address,
-        klendProgram: KLEND_PROGRAM_ID,
-        obligation,
-        lendingMarket: new PublicKey(KLEND_MARKET),
-        reserve: depositReserve,
-        reserveLiquiditySupply: depositReserveData.liquidity.supplyVault,
-        reserveCollateralMint: depositReserveData.collateral.mintPubkey,
-        reserveDestinationDepositCollateral:
-          depositReserveData.collateral.supplyVault,
-        lendingMarketAuthority,
-        userDestinationCollateral: depositCollateralAta.address,
-        instructionSysvarAccount: new PublicKey(
-          "Sysvar1nstructions1111111111111111111111111"
-        ),
-      },
-      {
-        amount: outputAmount,
-      }
-    )
-  );
+  if (!isBorrow) {
+    ixs.push(
+      createKlendDepositInstruction(
+        {
+          signer: performer.publicKey,
+          bestlendUserAccount,
+          userSourceLiquidity: outputATA,
+          bestlendUserSourceLiquidity: liquidityAta.address,
+          klendProgram: KLEND_PROGRAM_ID,
+          obligation,
+          lendingMarket: new PublicKey(KLEND_MARKET),
+          reserve: depositReserve,
+          reserveLiquiditySupply: depositReserveData.liquidity.supplyVault,
+          reserveCollateralMint: depositReserveData.collateral.mintPubkey,
+          reserveDestinationDepositCollateral:
+            depositReserveData.collateral.supplyVault,
+          lendingMarketAuthority,
+          userDestinationCollateral: depositCollateralAta.address,
+          instructionSysvarAccount: new PublicKey(
+            "Sysvar1nstructions1111111111111111111111111"
+          ),
+        },
+        {
+          amount: outputAmount,
+        }
+      )
+    );
+  } else {
+    ixs.push(
+      createKlendRepayInstruction(
+        {
+          signer: performer.publicKey,
+          bestlendUserAccount,
+          userSourceLiquidity: outputATA,
+          bestlendUserSourceLiquidity: liquidityAta.address,
+          klendProgram: KLEND_PROGRAM_ID,
+          obligation,
+          lendingMarket: new PublicKey(KLEND_MARKET),
+          reserve: depositReserve,
+          reserveDestinationLiquidity: depositReserveData.liquidity.supplyVault,
+          instructionSysvarAccount: new PublicKey(
+            "Sysvar1nstructions1111111111111111111111111"
+          ),
+        },
+        {
+          amount: outputAmount,
+        }
+      )
+    );
+  }
 
   /**
    * POST ACTION
    */
 
   // deposit is not in deposits
-  if (
-    obl
-      .getDeposits()
-      .findIndex((d) => d.reserveAddress.equals(depositReserve)) === -1
-  ) {
-    obl.deposits.set(depositReserve, {
-      reserveAddress: depositReserve,
-      mintAddress: depositReserveData.liquidity.mintPubkey,
-      amount: new Decimal(0),
-      marketValueRefreshed: new Decimal(0),
-    });
+  if (!isBorrow) {
+    if (
+      obl
+        .getDeposits()
+        .findIndex((d) => d.reserveAddress.equals(depositReserve)) === -1
+    ) {
+      obl.deposits.set(depositReserve, {
+        reserveAddress: depositReserve,
+        mintAddress: depositReserveData.liquidity.mintPubkey,
+        amount: new Decimal(0),
+        marketValueRefreshed: new Decimal(0),
+      });
+    }
+  } else {
+    if (
+      obl
+        .getBorrows()
+        .findIndex((d) => d.reserveAddress.equals(depositReserve)) === -1
+    ) {
+      obl.borrows.set(depositReserve, {
+        reserveAddress: depositReserve,
+        mintAddress: depositReserveData.liquidity.mintPubkey,
+        amount: new Decimal(0),
+        marketValueRefreshed: new Decimal(0),
+      });
+    }
   }
 
   ixs.push(...buildRefreshObligationIxs(obl, PublicKey.default, true));

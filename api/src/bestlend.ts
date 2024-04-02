@@ -76,6 +76,9 @@ export const checkForUpdate = async (req, res) => {
     return { updates: false };
   }
 
+  /*
+   * DEPOSITS
+   */
   for (const deposit of obl.getDeposits()) {
     // ignore really small amounts
     if (deposit.marketValueRefreshed.lt(new Decimal(0.1))) {
@@ -111,7 +114,9 @@ export const checkForUpdate = async (req, res) => {
     // move user to better asset
     if (potential > current) {
       console.log(
-        chalk.greenBright(`getting ${current} but could get ${potential}`)
+        chalk.greenBright(
+          `deposit: getting ${current} but could get ${potential}`
+        )
       );
 
       const signature = await swapUserAssetsPerformer(
@@ -167,7 +172,104 @@ export const checkForUpdate = async (req, res) => {
           10 ** (currentReserve.symbol.includes("USD") ? 6 : 9),
       };
     } else {
-      console.log(chalk.greenBright(`getting ${current} (optimal)`));
+      console.log(chalk.greenBright(`deposits: getting ${current} (optimal)`));
+    }
+  }
+
+  /*
+   * BORROWS
+   */
+  for (const borrow of obl.getBorrows()) {
+    // ignore really small amounts
+    if (borrow.marketValueRefreshed.lt(new Decimal(0.1))) {
+      continue;
+    }
+
+    const currentReserve = reserves.find((res) =>
+      res.mint.equals(borrow.mintAddress)
+    );
+
+    const isStable = currentReserve.symbol.includes("USD");
+
+    // find lowest rate that includes staking
+    const best = reserves
+      .filter((res) => res.symbol.includes("USD") === isStable)
+      .sort(
+        (a, b) =>
+          a.borrowAPR + getRate(a.symbol) - (b.borrowAPR + getRate(b.symbol))
+      )[0];
+
+    const current = currentReserve.borrowAPR + getRate(currentReserve.symbol);
+    const potential = best.borrowAPR + getRate(best.symbol);
+
+    const ltv = obl.loanToValue();
+    const mult = new Decimal(1).sub(ltv.div(new Decimal(0.78)));
+    let amt = borrow.amount.mul(mult).floor();
+    amt = Decimal.min(isStable ? 1000e6 : 5e9, amt);
+
+    // move user to better asset
+    if (current > potential) {
+      console.log(
+        chalk.greenBright(
+          `borrow: getting ${current} but could get ${potential}`
+        )
+      );
+
+      const signature = await swapUserAssetsPerformer(
+        user,
+        obl,
+        best.address,
+        currentReserve.address,
+        amt,
+        true
+      );
+
+      try {
+        const latestBlockHash = await connection.getLatestBlockhash();
+        const resp = await connection.confirmTransaction({
+          blockhash: latestBlockHash.blockhash,
+          lastValidBlockHeight: latestBlockHash.lastValidBlockHeight,
+          signature,
+        });
+
+        if (resp.value?.err) {
+          console.log(
+            chalk.redBright(
+              `action tx error: ${JSON.stringify(resp.value.err)}`
+            )
+          );
+          res.code(500);
+          return {
+            signature,
+            error: resp.value.err,
+          };
+        }
+      } catch (e) {
+        console.log(
+          chalk.redBright(`error confirming tx: ${JSON.stringify(e)}`)
+        );
+        res.code(500);
+        return {
+          signature,
+          error: "error confirming tx",
+        };
+      }
+
+      return {
+        message: `Moving your debt from ${currentReserve.symbol} to ${best.symbol}`,
+        details: `yield: ${Math.round(current * 10000) / 100}% -> ${
+          Math.round(potential * 10000) / 100
+        }%`,
+        updates: true,
+        ts: new Date().toJSON(),
+        signature,
+        address: user.toBase58(),
+        amount:
+          amt.toNumber() /
+          10 ** (currentReserve.symbol.includes("USD") ? 6 : 9),
+      };
+    } else {
+      console.log(chalk.greenBright(`borrows: getting ${current} (optimal)`));
     }
   }
 

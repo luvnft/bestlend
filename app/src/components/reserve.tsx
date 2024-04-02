@@ -287,19 +287,23 @@ const Reserve = ({ asset, lendingMarket, reserve, depositGroup }: Props) => {
             <Box>
               <HStack>
                 <Spacer />
-                {balance && <Box fontSize="sm">Balance: {balance.balance}</Box>}
-                <IconButton
-                  aria-label="update balance"
-                  icon={<RepeatIcon />}
-                  variant="link"
-                  color="owalaBrown"
-                  ml="-10px"
-                  onClick={() => {
-                    queryClient.invalidateQueries({
-                      queryKey: ["getBalance", publicKey],
-                    });
-                  }}
-                />
+                {balance && (
+                  <>
+                    <Box fontSize="sm">Balance: {balance.balance}</Box>{" "}
+                    <IconButton
+                      aria-label="update balance"
+                      icon={<RepeatIcon />}
+                      variant="link"
+                      color="owalaBrown"
+                      ml="-10px"
+                      onClick={() => {
+                        queryClient.invalidateQueries({
+                          queryKey: ["getBalance", publicKey],
+                        });
+                      }}
+                    />
+                  </>
+                )}
               </HStack>
               <NumberInput
                 min={0}
