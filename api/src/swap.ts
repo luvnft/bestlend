@@ -279,11 +279,11 @@ export const swapUserAssetsPerformer = async (
     if (
       obl
         .getBorrows()
-        .findIndex((d) => d.reserveAddress.equals(depositReserve)) === -1
+        .findIndex((d) => d.reserveAddress.equals(withdrawReserve)) === -1
     ) {
-      obl.borrows.set(depositReserve, {
-        reserveAddress: depositReserve,
-        mintAddress: depositReserveData.liquidity.mintPubkey,
+      obl.borrows.set(withdrawReserve, {
+        reserveAddress: withdrawReserve,
+        mintAddress: withdrawReserveData.liquidity.mintPubkey,
         amount: new Decimal(0),
         marketValueRefreshed: new Decimal(0),
       });
