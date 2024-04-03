@@ -73,6 +73,11 @@ const NavBar = () => {
           variant="ghost"
           onClick={onOpen}
         />
+        {!!actions?.length && (
+          <Box fontSize="lg" color="red" ml="-26px" mt="-14px">
+            &#9679;
+          </Box>
+        )}
       </HStack>
       <Drawer isOpen={isOpen} placement="right" onClose={onClose} size="sm">
         <DrawerOverlay />

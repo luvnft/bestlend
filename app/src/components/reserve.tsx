@@ -169,6 +169,10 @@ const Reserve = ({ asset, lendingMarket, reserve, depositGroup }: Props) => {
         action: isDepositBorrowAction ? btnText : otherBtnText,
       });
       queryClient.invalidateQueries({ queryKey: ["getObligation"] });
+      setTimeout(
+        () => queryClient.invalidateQueries({ queryKey: ["getActionUpdate"] }),
+        5000
+      );
       onClose();
     },
     onError: (error) => {
