@@ -67,7 +67,7 @@ export default function Home() {
 
   useEffect(() => {
     if (publicKey) {
-      setTimeout(() => setCheckForUpdates(true), 30_000);
+      setTimeout(() => setCheckForUpdates(true), 10_000);
       setUser({ id: publicKey.toBase58(), username: publicKey.toBase58() });
     }
   }, [publicKey]);
