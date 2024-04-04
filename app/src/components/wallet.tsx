@@ -42,6 +42,7 @@ const WalletSelect = ({ small }: { small?: boolean }) => {
       {connectableWallets.length ? (
         connectableWallets.map((wallet) => (
           <Tooltip
+            key={wallet.adapter.name}
             label={
               wallet.adapter.name === "Solflare"
                 ? "Solflare currently disabled. Please use Phantom or Backpack"
@@ -49,7 +50,6 @@ const WalletSelect = ({ small }: { small?: boolean }) => {
             }
           >
             <Button
-              key={wallet.adapter.name}
               onClick={() => {
                 setSelectWallet(wallet);
                 select(wallet.adapter.name);
