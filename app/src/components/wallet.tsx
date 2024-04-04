@@ -41,31 +41,40 @@ const WalletSelect = ({ small }: { small?: boolean }) => {
     <VStack gap={4}>
       {connectableWallets.length ? (
         connectableWallets.map((wallet) => (
-          <Button
-            key={wallet.adapter.name}
-            onClick={() => {
-              setSelectWallet(wallet);
-              select(wallet.adapter.name);
-            }}
-            w="full"
-            size="lg"
-            fontSize="md"
-            leftIcon={
-              <Image
-                src={wallet.adapter.icon}
-                alt={wallet.adapter.name}
-                boxSize={6}
-              />
+          <Tooltip
+            label={
+              wallet.adapter.name === "Solflare"
+                ? "Solflare currently disabled. Please use Phantom or Backpack"
+                : ""
             }
-            variant="outline"
           >
-            {wallet.adapter.name}
-          </Button>
+            <Button
+              key={wallet.adapter.name}
+              onClick={() => {
+                setSelectWallet(wallet);
+                select(wallet.adapter.name);
+              }}
+              w="full"
+              size="lg"
+              fontSize="md"
+              isDisabled={wallet.adapter.name === "Solflare"}
+              leftIcon={
+                <Image
+                  src={wallet.adapter.icon}
+                  alt={wallet.adapter.name}
+                  boxSize={6}
+                />
+              }
+              variant="outline"
+            >
+              {wallet.adapter.name}
+            </Button>
+          </Tooltip>
         ))
       ) : (
         <Stack>
           <Text>No wallet found</Text>
-          <Text>Please download a supported Solana wallet</Text>
+          <Text>Please download Phantom or Backpack</Text>
         </Stack>
       )}
       {selectedWallet && (
